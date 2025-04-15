@@ -12,6 +12,7 @@ def home():
     temp = session['type'] = 1
     return render_template('userview.html', temp=temp)
 
-@user_bp.route('/addItem')
-def addItem():
+@user_bp.route('/login')
+def login():
+    return render_template('index.html')
     

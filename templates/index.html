@@ -1,10 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="container">
-        <header>
-        </header>
-        <nav class="nav-links">
-           
-        </nav>
-    </div>
+<style>
+  .container {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: white;
+  }
+
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .nav-links a {
+    background-color: #51048c;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s, transform 0.2s;
+  }
+
+  .nav-links a:hover {
+    background-color: #732ac1;
+    transform: translateY(-3px);
+  }
+
+  header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #faf0ff;
+  }
+
+  header p {
+    font-size: 1.2rem;
+    color: #e0d0ff;
+  }
+</style>
+
+<div class="container">
+  <header>
+    <h1>Welcome to The Emporium Admin Panel</h1>
+    <p>Manage your products directly from here.</p>
+  </header>
+
+  <nav class="nav-links">
+    <a href="{{ url_for('products.create_product') }}">Create Product</a>
+    <a href="{{ url_for('products.edit_product', product_id=1) }}">Edit Product #1</a>
+  </nav>
+</div>
 {% endblock %}
