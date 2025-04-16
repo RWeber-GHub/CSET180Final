@@ -1,0 +1,31 @@
+{% extends 'base.html'%}
+{% block content %}
+<body>
+    <div class="container">
+        <header>
+            <a href="{{ url_for('home.home') }}" class="home-link">Home</a>
+            <h1>{{ type }}</h1>
+        </header>
+    </div>
+    <div>
+        <form method="POST" action="{{ url_for('user.chat') }}">
+            <input type="text" name="msg" required placeholder="Message">
+            <input type="submit" value="Send">
+        </form>    
+        <h1>Your Chats</h1>
+        {% for chat in chats %}
+            <h2>Chat ID: {{ chat.chat_id }}</h2>
+            <ul>
+            {% for msg in chat.messages %}
+                <li>
+                    <strong>User {{ msg.user_id }}:</strong> {{ msg.text }} 
+                </li>
+            {% endfor %}
+            </ul>
+        {% endfor %}
+        {% if e %}
+            <h1>{{  e  }}</h1>
+        {% endif %}
+    </div>
+</body>
+{% endblock %}

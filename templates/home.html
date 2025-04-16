@@ -1,41 +1,111 @@
+{% extends 'base.html'%}
+{% block content %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
-</head>
 <body>
     <div class="container">
         <header>
-            <a href="{{ url_for('index') }}" class="home-link">Home</a>
-            <h1>Home</h1>
-            <h1>{{ temp }}</h1>
+            <a href="{{ url_for('user.user') }}" class="home-link">Home</a>
+            <h1>{{ type }}</h1>
         </header>
-        <div class="uni-form">
-            <form method="POST">
+        <div class="uni-form" id="login-form">
+            <form method="POST" action="{{ url_for('home.login') }}">
                 <input type="text" name="username" required placeholder="Username">
                 <input type="password" name="password" required placeholder="Password">
                 <input type="submit" value="Login">
             </form>
         </div>
-        <div class="uni-form">
-            <form method="POST">
+        <div class="uni-form" id="signup-form">
+            <form method="POST" action="{{ url_for('home.signup') }}">
                 <input type="text" name="first_name" required placeholder="First Name">
                 <input type="text" name="last_name" required placeholder="Last Name">
                 <input type="email" name="email" required placeholder="Email">
                 <input type="text" name="username" required placeholder="Username">
                 <input type="password" name="password" required placeholder="Password">
+                <select name="type">
+                    <option value="A">User</option>
+                    <option value="B">Vendor</option>
+                </select>
                 <input type="submit" value="Signup">
             </form>
         </div>
     </div>
     <div>
+        <!-- {% for user in users %}
+        <ul>
+            <li>{{ user[0] }}</li>
+            <li>{{ user[1] }}</li>
+            <li>{{ user[2] }}</li>
+            <li>{{ user[3] }}</li>
+            <li>{{ user[4] }}</li>
+            <li>{{ user[5] }}</li>
+        </ul>
+        {% endfor %} -->
         {% if e %}
         <h1>{{  e  }}</h1>
         {% endif %}
     </div>
 </body>
+<style>
+body{
+
+    background-size: cover;
+    background-position: center;
+    
+}
+.uni-form form {
+    display: flex;
+    flex-direction: column;
+}
+
+.uni-form input,
+.uni-form select {
+    padding: 10px;
+    margin: auto;
+    margin-top: 20px;
+    max-width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.uni-form input[type="submit"] {
+    background-color: #dcb055;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.uni-form input[type="submit"]:hover {
+    background-color: #ba9466;
+}
+
+.uni-form label {
+    padding: 10px;
+    margin: auto;
+    margin-top: 20px;
+    max-width: 300px;
+    background-color: black;
+    font-size: 1rem;
+}
+.uni-form button {
+    background-color: #dcb055;
+    color: white;
+    margin: auto;
+    cursor: pointer;
+    padding: 10px;
+    width: fit-content;
+    border-radius: 5px;
+    border: none;
+}
+.uni-form button:hover {
+    background-color: #ba9466;
+}
+#login-form {
+    background-color: #5a2aa2;
+}
+#signup-form {
+    background-color: #5a2aa2;
+}
+</style>
 </html>
+{% endblock %}

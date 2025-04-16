@@ -1,0 +1,58 @@
+{% extends 'base.html'%}
+{% block content %}
+<body>
+    <div class="container">
+        <header>
+            <a href="{{ url_for('home.home') }}" class="home-link">Home</a>
+            <h1>{{ type }}</h1>
+        </header>
+    </div>
+    <div>
+        <h1>Marketplace</h1>
+        <div class="products-container">
+            {% for product in products %}
+                <div class="product-card">
+                    <h3>{{ product.title }}</h3>
+                    <img src="{{  product.image  }}" alt="">
+                    <p>{{ product.description }}</p>
+                    <p>Stock: {{ product.stock }}</p>
+                    <p class="price">Price: ${{ '%.2f'|format(product.price) }}</p>
+                </div>
+            {% endfor %}
+        {% if e %}
+            <h1>{{  e  }}</h1>
+        {% endif %}
+    </div>
+</body>
+<style>
+.products-container {
+    max-width: 1000px;
+    margin: 80px auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 0 1rem;
+}
+.product-card {
+    background: linear-gradient(145deg, #51048c, #6e31a6);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 1.5rem;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.product-card h3 {
+    margin-bottom: 0.5rem;
+}
+.product-card p {
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+.product-card .price {
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}

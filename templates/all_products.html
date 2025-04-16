@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .products-container {
+    max-width: 1000px;
+    margin: 80px auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 0 1rem;
+  }
+
+  .product-card {
+    background: linear-gradient(145deg, #51048c, #6e31a6);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 1.5rem;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .product-card h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .product-card p {
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+  }
+
+  .product-card .price {
+    font-weight: bold;
+    margin-top: 0.5rem;
+  }
+
+  .product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .product-actions a,
+  .product-actions button {
+    flex: 1;
+    background-color: #330066;
+    color: white;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+    cursor: pointer;
+  }
+
+  .product-actions a:hover,
+  .product-actions button:hover {
+    background-color: #6c2eb9;
+  }
+
+  h2 {
+    text-align: center;
+    margin-top: 2rem;
+    color: #faf0ff;
+  }
+</style>
+
+<style>
+    .form-container {
+      max-width: 600px;
+      margin: 80px auto;
+      background: linear-gradient(145deg, #51048c, #6e31a6);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      color: white;
+    }
+  
+    .form-container h2 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+  
+    .form-container input,
+    .form-container textarea,
+    .form-container button {
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+  
+    .form-container input,
+    .form-container textarea {
+      background-color: #faf0ff;
+      color: #000;
+    }
+  
+    .form-container button {
+      background-color: #330066;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+  
+    .form-container button:hover {
+      background-color: #6c2eb9;
+    }
+  </style>
+  
+<style>
+
+.form-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  font-family: Arial, sans-serif;
+}
+
+.form-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #333;
+}
+
+.form-container form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-container input,
+.form-container textarea,
+.form-container select,
+.form-container button {
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.form-container textarea {
+  resize: vertical;
+}
+
+.form-container select[multiple] {
+  height: 120px;
+  background-color: #fff;
+  overflow-y: auto;
+}
+
+.form-container label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #2b2a2a;
+}
+
+.form-container button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.form-container button:hover {
+  background-color: #0056b3;
+}
+
+
+</style>
+
+<div class="form-container">
+  <h2>Create Product</h2>
+  <form method="POST" enctype="multipart/form-data">
+    <input type="text" name="title" placeholder="Product Title" required>
+    <textarea name="description" placeholder="Product Description" rows="4" required></textarea>
+    <input type="date" name="warranty" placeholder="Warranty Date">
+    <input type="number" name="stock" placeholder="Stock Quantity" required>
+    <input type="number" name="price" placeholder="Price ($)" step="0.01" required>
+
+    <label>Color Hex Codes (Separate by comma, ex. #FF0000, #00FF00):</label>
+    <input type="text" name="colors" placeholder="#FF0000, #00FF00">
+    
+    <label>Select Sizes:(Separate by comma, ex. S,L,XL):</label>
+    <input type="text" name="sizes" placeholder="XS,S,M,L,XL,XXL">
+    
+
+    <label>Upload Images:</label>
+    <input type="file" name="images" accept="image/*" multiple>
+
+    <button type="submit">Create Product</button>
+  </form>
+</div>
+
+  
+<h2>Products</h2>
+
+<div class="products-container">
+  {% for product in products %}
+    <div class="product-card">
+      <h3>{{ product.title }}</h3>
+      <p>{{ product.description }}</p>
+      <p>Stock: {{ product.stock }}</p>
+      <p>Warranty: {{ product.warranty }}</p>
+      <p class="price">Price: ${{ '%.2f'|format(product.price) }}</p>
+
+      <div class="product-actions">
+        <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">Edit</a>
+        <form action="{{ url_for('products.delete_product', product_id=product.product_id) }}" method="POST" style="margin: 0;">
+          <button type="submit" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

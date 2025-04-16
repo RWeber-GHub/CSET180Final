@@ -33,24 +33,23 @@
   header h1 {
     font-size: 2.5rem;
     margin-bottom: 1rem;
-    color: #faf0ff;
+    color: #7b7180;
   }
 
   header p {
     font-size: 1.2rem;
-    color: #e0d0ff;
+    color: #89809d;
   }
 </style>
 
 <div class="container">
   <header>
     <h1>Welcome to The Emporium Admin Panel</h1>
-    <p>Manage your products directly from here.</p>
+    <p>Manage your products</p>
   </header>
 
   <nav class="nav-links">
-    <a href="{{ url_for('products.create_product') }}">Create Product</a>
-    <a href="{{ url_for('products.edit_product', product_id=1) }}">Edit Product #1</a>
+    <a href="{{ url_for('products.all_products') }}">Manage Products</a>
   </nav>
 </div>
 {% endblock %}
