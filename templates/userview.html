@@ -3,11 +3,14 @@
 <body>
     <div class="container">
         <header>
-            <a href="{{ url_for('home.home') }}" class="home-link">Home</a>
-            <a href="{{ url_for('user.chat') }}" class="home-link">Chat</a>
-            <a href="{{ url_for('user.products') }}" class="home-link">Shop</a>
+            <a href="{{ url_for('home.home') }}">Home</a>
+            <a href="{{ url_for('user.chat') }}">Chat</a>
+            <a href="{{ url_for('user.products') }}">Shop</a>
+            <a href="{{ url_for('user.cart') }}">Cart</a>
+            <a href="{{ url_for('user.view_orders') }}">Orders</a>
         </header>
     </div>
+    <h2>User Dashboard</h2>
     <div>
         <ul>
             <li>{{ user[0] }}</li>
@@ -22,5 +25,9 @@
         {% endif %}
     </div>
 </body>
-</html>
+<style>
+    a:visited{
+    color: white;
+}
+</style>
 {% endblock %}

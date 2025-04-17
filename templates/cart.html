@@ -1,0 +1,81 @@
+{% extends 'base.html'%}
+{% block content %}
+<body>
+    <div class="container">
+        <header>
+            <a href="{{ url_for('user.user') }}">User Dashboard</a>
+            <a href="{{ url_for('user.products') }}">Shop</a>
+            <h1>{{ type }}</h1>
+        </header>
+    </div>
+    <h1>Your Cart</h1>
+        {% if cart_items %}
+            <div class="products-container">
+                {% for item in cart_items %}
+                    <div class="product-card">
+                        <img src="{{ item.image }}" alt="{{ item.title }}">
+                        <div>
+                            <h3>{{ item.title }}</h3>
+                            <p>Price: ${{ '%.2f'|format(item.price) }}</p>
+                            <p>Quantity: {{ item.quantity }}</p>
+                            <p><strong>Subtotal: ${{ '%.2f'|format(item.subtotal) }}</strong></p>
+                        </div>
+                        <form method="POST" action="{{ url_for('user.delete_item') }}">
+                            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                            <input type="hidden" name="quantity" value="{{ item.quantity }}">
+
+                            <button type="submit">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+            <div>
+                <h2>Total: ${{ '%.2f'|format(total) }}</h2>
+            </div>
+            <div>
+                <form method="POST" action="{{ url_for('user.place_order') }}">
+                    <button type="submit">Order</button>
+                </form>
+            </div>
+        {% else %}
+            <p>Your cart is empty!</p>
+        {% endif %}
+    
+</body>
+<style>
+.products-container {
+    max-width: 1000px;
+    margin: 80px auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 0 1rem;
+}
+.product-card {
+    background: linear-gradient(145deg, #51048c, #6e31a6);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 1.5rem;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.product-card h3 {
+    margin-bottom: 0.5rem;
+}
+.product-card p {
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+.product-card .price {
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+a:visited{
+    color: white;
+}
+</style>
+{% endblock %}
+
+

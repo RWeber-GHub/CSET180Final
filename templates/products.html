@@ -3,7 +3,8 @@
 <body>
     <div class="container">
         <header>
-            <a href="{{ url_for('home.home') }}" class="home-link">Home</a>
+            <a href="{{ url_for('user.user') }}">User Dashboard</a>
+            <a href="{{ url_for('user.cart') }}">Cart</a>
             <h1>{{ type }}</h1>
         </header>
     </div>
@@ -17,6 +18,11 @@
                     <p>{{ product.description }}</p>
                     <p>Stock: {{ product.stock }}</p>
                     <p class="price">Price: ${{ '%.2f'|format(product.price) }}</p>
+                    <form method="POST" action="{{ url_for('user.products') }}">
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                        <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
+                        <input type="submit" value="Add to Cart">
+                    </form>
                 </div>
             {% endfor %}
         {% if e %}
@@ -53,6 +59,9 @@
 .product-card .price {
     font-weight: bold;
     margin-top: 0.5rem;
+}
+a:visited{
+    color: white;
 }
 </style>
 {% endblock %}

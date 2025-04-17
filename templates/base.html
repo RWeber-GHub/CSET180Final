@@ -23,7 +23,7 @@
       z-index: 10;
     }
 
-    .logo.slide-up {
+    /* .logo.slide-up {
       top: 20px;
       left: 20px;
       transform: translate(0, 0);
@@ -43,13 +43,13 @@
 
     body.bg-fade {
       background-color: #f0f0f0;
-    }
+    } */
   </style>
   {% block head %}{% endblock %}
 </head>
 <body>
   
-  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo" id="logo" />
+  <!-- <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo" id="logo" /> -->
   
 
   <div class="content" id="content">
@@ -57,7 +57,7 @@
     {% endblock %}
   </div>
 
-  <script>
+  <!-- <script>
     window.addEventListener("load", () => {
       const logo = document.getElementById("logo");
       const content = document.getElementById("content");
@@ -72,7 +72,7 @@
         }, 1000);
       }, 1500);
     });
-  </script>
+  </script> -->
   {% block scripts %}{% endblock %}
 </body>
 </html>
