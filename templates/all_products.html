@@ -181,7 +181,7 @@
 
 <div class="form-container">
   <h2>Create Product</h2>
-  <form method="POST" enctype="multipart/form-data">
+  <form method="POST" action="{{ url_for('products.create_product') }}" enctype="multipart/form-data">
     <input type="text" name="title" placeholder="Product Title" required>
     <textarea name="description" placeholder="Product Description" rows="4" required></textarea>
     <input type="date" name="warranty" placeholder="Warranty Date">
@@ -191,16 +191,16 @@
     <label>Color Hex Codes (Separate by comma, ex. #FF0000, #00FF00):</label>
     <input type="text" name="colors" placeholder="#FF0000, #00FF00">
     
-    <label>Select Sizes:(Separate by comma, ex. S,L,XL):</label>
+    <label>Select Sizes (e.g. S,L,XL):</label>
     <input type="text" name="sizes" placeholder="XS,S,M,L,XL,XXL">
     
-
     <label>Upload Images:</label>
     <input type="file" name="images" accept="image/*" multiple>
 
     <button type="submit">Create Product</button>
   </form>
 </div>
+
 
   
 <h2>Products</h2>

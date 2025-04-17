@@ -4,7 +4,7 @@ from db import engine
 from db import conn
 from home import home_bp
 from users import user_bp
-from products import products_bp
+
 import logging
 import random
 import string
@@ -14,8 +14,9 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 app.register_blueprint(home_bp, url_prefix='/home')  
 app.register_blueprint(user_bp, url_prefix='/userview')
-app.register_blueprint(products_bp, url_prefix='/products')
 
+from products import products_bp
+app.register_blueprint(products_bp, url_prefix='/products')
 
 @app.route('/')
 def index():
