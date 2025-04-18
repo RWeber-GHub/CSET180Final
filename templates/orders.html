@@ -1,0 +1,178 @@
+{% extends 'base.html'%}
+{% block content %}
+<body>
+    <div class="container">
+        <header>
+            <div class="header-links">
+                <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+                <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+            </div>
+            <h1 class="page-title">{{ type }} Orders</h1>
+        </header>
+
+        <div class="orders-section">
+            <h2>Your Orders</h2>
+            <div class="products-container">
+                {% if user_type == 'A' %}
+                    {% for order_item in order_items %}
+                        <div class="product-card">
+                            <img src="{{ order_item.image }}" alt="{{ order_item.title }}" class="product-image">
+                            <div class="product-info">
+                                <h3 class="product-title">{{ order_item.title }}</h3>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if user_type == 'B' %}
+                    {% for uid, user_data in grouped_orders.items() %}
+                        <div class="user-orders">
+                            <h3 class="user-name">{{ user_data.name }} ({{ user_data.email }})</h3>
+                            {% for order_id, items in user_data.orders.items() %}
+                                <div class="order-card">
+                                    <h4>Order ID: {{ order_id }}</h4>
+                                    <div class="order-items">
+                                        {% for item in items %}
+                                            <div class="product-card">
+                                                <img src="{{ item.image }}" alt="{{ item.title }}" class="product-image">
+                                                <div class="product-info">
+                                                    <h5 class="product-title">{{ item.title }}</h5>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if e %}
+        <div class="error-message">
+            <h1>{{ e }}</h1>
+        </div>
+    {% endif %}
+</body>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+
+.link {
+    text-decoration: none;
+    font-size: 16px;
+    color: #6e31a6;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.link:hover {
+    color: #51048c;
+}
+
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
+}
+
+.orders-section {
+    background-color: #6e31a6;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.orders-section h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.products-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.product-card {
+    background: linear-gradient(145deg, #51048c, #6e31a6);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+}
+.product-image {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+.product-info {
+    color: #fff;
+}
+.product-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+.user-orders {
+    margin-bottom: 40px;
+}
+.user-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+}
+.order-card {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+.order-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.error-message {
+    background-color: #fddede;
+    padding: 20px;
+    margin-top: 30px;
+    border-radius: 8px;
+    color: #d9534f;
+    font-size: 18px;
+    text-align: center;
+}
+</style>
+{% endblock %}

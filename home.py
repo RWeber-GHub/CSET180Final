@@ -62,5 +62,5 @@ def signup():
                 return redirect(url_for("user.user"))
         except Exception as e:
             return render_template('home.html', error=str(e))
-    return render_template('home.html')
+    return render_template('userview.html')
 

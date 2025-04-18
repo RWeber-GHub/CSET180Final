@@ -8,6 +8,9 @@
             <a href="{{ url_for('user.products') }}">Shop</a>
             <a href="{{ url_for('user.cart') }}">Cart</a>
             <a href="{{ url_for('user.view_orders') }}">Orders</a>
+            {% if user_type == 'B' or user_type == 'C' %}
+                <a href="{{ url_for('products.all_products') }}">Products</a>
+            {% endif %}
         </header>
     </div>
     <h2>User Dashboard</h2>

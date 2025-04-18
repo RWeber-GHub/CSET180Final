@@ -8,12 +8,13 @@ user_bp = Blueprint("user", __name__, static_folder="static", template_folder="t
 @user_bp.route('/')
 def user():
     user_id = session['user_id']
+    user_type = session['user_type']
     user = conn.execute(text("""
         select * from user where user_id = :user_id
     """), {
         'user_id': user_id
     }).fetchone()
-    return render_template('userview.html', user=user)
+    return render_template('userview.html', user=user, user_type=user_type)
 
 @user_bp.route('/chat')
 def chat():
@@ -72,6 +73,7 @@ def products():
         left join images i on pi.image_id = i.image_id
         order by p.product_id asc
     """)).fetchall()
+    print(f'***{info}***')
     return render_template('products.html', products=info)
 
 @user_bp.route('/cart')
@@ -170,36 +172,78 @@ def place_order():
       'user_id': user_id
     })
     conn.commit()
-    
     return redirect(url_for('user.cart'))
-  
+
 @user_bp.route('/view_orders', methods=['GET', 'POST'])
 def view_orders():
+    user_type = session['user_type']
     user_id = session['user_id']
-    order_id = conn.execute(text("""
-        select order_id from orders where user_id = :user_id
-    """), {
-        'user_id': user_id
-    }).fetchone()[0]
-    items = conn.execute(text("""
-        select product_id from order_products where order_id = :order_id
-    """), {
-        'order_id': order_id
-    }).fetchall()
 
-    order_items = []
-    for item in items:
-        product = conn.execute(text("""
-        select p.product_id, p.title, p.price, i.image, 
-        from product p
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        """), )
-    
-    # order_items.append({
-    #         'product_id': item.product_id,
-    #         'title': item.title,
-    #         'image': item.image,
-    #     })
-    print(f'***{items}***')
-    return render_template('orders.html', order_items=items)
+    if user_type == 'A':
+        order_ids = conn.execute(text("""
+            select order_id from orders where user_id = :user_id
+        """), {
+            'user_id': user_id
+        }).fetchall()
+
+        order_items = []
+        for order_id in order_ids:
+            items = conn.execute(text("""
+                select product_id from order_products where order_id = :order_id
+            """), {
+                'order_id': order_id
+            }).fetchall()
+
+            for item in items:
+                product = conn.execute(text("""
+                    select p.product_id, p.title, p.price, i.image
+                    from product p
+                    left join product_images pi on p.product_id = pi.product_id
+                    left join images i on pi.image_id = i.image_id
+                    where p.product_id = :product_id
+                """), {
+                    'product_id': item[0]
+                }).fetchone()
+                order_items.append({
+                    'title': product.title,
+                    'image': product.image,
+                })
+
+        return render_template('orders.html', order_items=order_items, user_type=user_type)
+
+    elif user_type == 'B':
+        user_orders = conn.execute(text("""
+            select o.order_id, o.user_id, u.name, u.email 
+            from orders o
+            join user u on o.user_id = u.user_id
+        """)).fetchall()
+        grouped_orders = {}
+
+        for user_order in user_orders:
+            user_id = user_order.user_id
+            if user_id not in grouped_orders:
+                grouped_orders[user_id] = {
+                    'name': user_order.name,
+                    'email': user_order.email,
+                    'orders': {}
+                }
+            products = conn.execute(text("""
+                select p.title, i.image
+                from order_products op
+                join product p on op.product_id = p.product_id
+                left join product_images pi on p.product_id = pi.product_id
+                left join images i on pi.image_id = i.image_id
+                where op.order_id = :order_id
+            """), {'order_id': user_order.order_id}).fetchall()
+
+            product_list = []
+            for product in products:
+                product_list.append({
+                    'title': product.title,
+                    'image': product.image
+                })
+            grouped_orders[user_id]['orders'][user_order.order_id] = product_list
+
+        return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders)
+
+    return render_template('orders.html')

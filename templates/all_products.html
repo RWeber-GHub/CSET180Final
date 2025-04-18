@@ -175,36 +175,20 @@
 .form-container button:hover {
   background-color: #0056b3;
 }
-
+a:visited{
+    color: white;
+}
 
 </style>
-
-<div class="form-container">
-  <h2>Create Product</h2>
-  <form method="POST" action="{{ url_for('products.create_product') }}" enctype="multipart/form-data">
-    <input type="text" name="title" placeholder="Product Title" required>
-    <textarea name="description" placeholder="Product Description" rows="4" required></textarea>
-    <input type="date" name="warranty" placeholder="Warranty Date">
-    <input type="number" name="stock" placeholder="Stock Quantity" required>
-    <input type="number" name="price" placeholder="Price ($)" step="0.01" required>
-
-    <label>Color Hex Codes (Separate by comma, ex. #FF0000, #00FF00):</label>
-    <input type="text" name="colors" placeholder="#FF0000, #00FF00">
-    
-    <label>Select Sizes (e.g. S,L,XL):</label>
-    <input type="text" name="sizes" placeholder="XS,S,M,L,XL,XXL">
-    
-    <label>Upload Images:</label>
-    <input type="file" name="images" accept="image/*" multiple>
-
-    <button type="submit">Create Product</button>
-  </form>
+<a href="{{ url_for('user.user') }}">User Page</a>
+<div class="nav-list">
+  <a href="{{url_for('products.create')}}">Stupid</a>
 </div>
+
 
 
   
 <h2>Products</h2>
-
 <div class="products-container">
   {% for product in products %}
     <div class="product-card">
@@ -223,4 +207,5 @@
     </div>
   {% endfor %}
 </div>
+
 {% endblock %}
