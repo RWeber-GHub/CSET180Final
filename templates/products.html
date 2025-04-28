@@ -3,34 +3,45 @@
 <body>
     <div class="container">
         <header>
-            <a href="{{ url_for('user.user') }}">User Dashboard</a>
-            <a href="{{ url_for('user.cart') }}">Cart</a>
-            <h1>{{ type }}</h1>
+            <div class="header-links">
+                <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+                <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+            </div>
         </header>
-    </div>
-    <div>
-        <h1>Marketplace</h1>
+    <h1>Marketplace</h1>
+    <div class="temp">
         <div class="products-container">
             {% for product in products %}
-                <div class="product-card">
-                    <h3>{{ product.title }}</h3>
-                    <img src="{{  product.image  }}" alt="">
-                    <p>{{ product.description }}</p>
-                    <p>Stock: {{ product.stock }}</p>
-                    <p class="price">Price: ${{ '%.2f'|format(product.price) }}</p>
-                    <form method="POST" action="{{ url_for('user.products') }}">
-                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                        <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
-                        <input type="submit" value="Add to Cart">
-                    </form>
-                </div>
+            <div class="product-card">
+                <h3>{{ product.title }}</h3>
+                <img src="{{  product.image  }}" alt="">
+                <p>{{ product.description }}</p>
+                <p>Stock: {{ product.stock }}</p>
+                <p class="price">Price: ${{ '%.2f'|format(product.price) }}</p>
+                <form method="POST" action="{{ url_for('user.products') }}">
+                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                    <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
+                    <input type="submit" value="Add to Cart">
+                </form>
+            </div>
             {% endfor %}
-        {% if e %}
-            <h1>{{  e  }}</h1>
-        {% endif %}
+        </div>
     </div>
+</div>
 </body>
 <style>
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
 .products-container {
     max-width: 1000px;
     margin: 80px auto;
@@ -38,6 +49,12 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
     padding: 0 1rem;
+}
+.temp {
+    background-color: #ab67eb;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
 }
 .product-card {
     background: linear-gradient(145deg, #51048c, #6e31a6);
@@ -49,6 +66,7 @@
     flex-direction: column;
     justify-content: space-between;
 }
+
 .product-card h3 {
     margin-bottom: 0.5rem;
 }
@@ -60,8 +78,21 @@
     font-weight: bold;
     margin-top: 0.5rem;
 }
-a:visited{
+
+.link:hover {
+    color: #ab67eb;
+}
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+.link {
+    text-decoration: none;
+    font-size: 16px;
     color: white;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    padding-top: 20px;
 }
 </style>
 {% endblock %}

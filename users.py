@@ -42,39 +42,40 @@ def chat():
 
 @user_bp.route('/products', methods=['GET', 'POST'])
 def products():
-    user_id = session['user_id']
-    if request.method == 'POST':
-        product_id = request.form['product_id']
-        quantity = int(request.form['quantity'])
+    # user_id = session['user_id']
+    # if request.method == 'POST':
+    #     product_id = request.form['product_id']
+    #     quantity = int(request.form['quantity'])
 
-        cart = conn.execute(text("""
-            select cart_id from cart where user_id = :user_id
-        """), {
-            'user_id': user_id
-        }).fetchone()
-        cart_id = cart.cart_id
-        conn.execute(text("""
-            insert into cart_items (cart_id, product_id, color_id, size_id, quantity)
-            values 
-            (:cart_id, :product_id, :color_id, :size_id, :quantity)
-            on duplicate key update quantity = quantity + :quantity
-        """), {
-            'cart_id': cart_id,
-            'product_id': product_id,
-            'color_id': 1,
-            'size_id': 1,
-            'quantity': quantity
-        })
-        conn.commit()
-    info = conn.execute(text("""
-        select p.title, p.description, p.stock, p.price, i.image, p.product_id
-        from product p
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        order by p.product_id asc
-    """)).fetchall()
-    print(f'***{info}***')
-    return render_template('products.html', products=info)
+    #     cart = conn.execute(text("""
+    #         select cart_id from cart where user_id = :user_id
+    #     """), {
+    #         'user_id': user_id
+    #     }).fetchone()
+    #     cart_id = cart.cart_id
+    #     conn.execute(text("""
+    #         insert into cart_items (cart_id, product_id, color_id, size_id, quantity)
+    #         values 
+    #         (:cart_id, :product_id, :color_id, :size_id, :quantity)
+    #         on duplicate key update quantity = quantity + :quantity
+    #     """), {
+    #         'cart_id': cart_id,
+    #         'product_id': product_id,
+    #         'color_id': 1,
+    #         'size_id': 1,
+    #         'quantity': quantity
+    #     })
+    #     conn.commit()
+    # info = conn.execute(text("""
+    #     select p.title, p.description, p.stock, p.price, i.image, p.product_id
+    #     from product p
+    #     left join product_images pi on p.product_id = pi.product_id
+    #     left join images i on pi.image_id = i.image_id
+    #     order by p.product_id asc
+    # """)).fetchall()
+    # print(f'***{info}***')
+    # return render_template('products.html', products=info)
+    return redirect(url_for('products.product_gallery'))
 
 @user_bp.route('/cart')
 def cart():
@@ -185,15 +186,14 @@ def view_orders():
         """), {
             'user_id': user_id
         }).fetchall()
-
         order_items = []
-        for order_id in order_ids:
+        for order_row in order_ids:
+            order_id = order_row[0]
             items = conn.execute(text("""
                 select product_id from order_products where order_id = :order_id
             """), {
                 'order_id': order_id
             }).fetchall()
-
             for item in items:
                 product = conn.execute(text("""
                     select p.product_id, p.title, p.price, i.image
@@ -211,7 +211,7 @@ def view_orders():
 
         return render_template('orders.html', order_items=order_items, user_type=user_type)
 
-    elif user_type == 'B':
+    if user_type == 'B':
         user_orders = conn.execute(text("""
             select o.order_id, o.user_id, u.name, u.email 
             from orders o
@@ -221,6 +221,13 @@ def view_orders():
 
         for user_order in user_orders:
             user_id = user_order.user_id
+            status = conn.execute(text("""select status from orders where order_id = :order_id
+            """), {
+            'order_id': user_order.order_id
+            }).fetchone()
+            print(f'***{status}***')
+            if status[0] == 'confirmed':
+                print('hhhehehehhehe')
             if user_id not in grouped_orders:
                 grouped_orders[user_id] = {
                     'name': user_order.name,
@@ -243,7 +250,18 @@ def view_orders():
                     'image': product.image
                 })
             grouped_orders[user_id]['orders'][user_order.order_id] = product_list
-
         return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders)
 
+    return render_template('orders.html')
+
+@user_bp.route('/approve_order', methods=['GET', 'POST'])
+def approve_order():
+    order_id = request.form['order_id']
+
+    conn.execute(text("""
+        update orders set status = "confirmed" where order_id = :order_id
+    """), {
+        'order_id': order_id
+    })
+    conn.commit()
     return render_template('orders.html')

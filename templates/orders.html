@@ -6,12 +6,17 @@
             <div class="header-links">
                 <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+                <a href="{{ url_for('user.products') }}" class="link">Shop</a>
             </div>
-            <h1 class="page-title">{{ type }} Orders</h1>
         </header>
 
         <div class="orders-section">
-            <h2>Your Orders</h2>
+            {% if user_type == 'A' %}
+                <h2>Your Orders</h2>
+            {% endif %}
+            {% if user_type == 'B' %}
+                <h2>Orders</h2>
+            {% endif %}
             <div class="products-container">
                 {% if user_type == 'A' %}
                     {% for order_item in order_items %}
@@ -42,6 +47,10 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                <form method="POST" action="{{ url_for('user.approve_order') }}">
+                                    <input type="hidden" name="order_id" value="{{ order_id }}">
+                                    <button type="submit">Approve</button>
+                                </form>
                             {% endfor %}
                         </div>
                     {% endfor %}
@@ -49,12 +58,6 @@
             </div>
         </div>
     </div>
-
-    {% if e %}
-        <div class="error-message">
-            <h1>{{ e }}</h1>
-        </div>
-    {% endif %}
 </body>
 
 <style>
@@ -79,22 +82,15 @@ header {
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: #6e31a6;
+    color: white;
     font-weight: bold;
     transition: color 0.3s ease;
+    padding-top: 20px;
 }
 
 .link:hover {
-    color: #51048c;
+    color: #ab67eb;
 }
-
-.page-title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #6e31a6;
-    margin-bottom: 10px;
-}
-
 .orders-section {
     background-color: #6e31a6;
     border-radius: 16px;
@@ -165,14 +161,6 @@ header {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
-.error-message {
-    background-color: #fddede;
-    padding: 20px;
-    margin-top: 30px;
-    border-radius: 8px;
-    color: #d9534f;
-    font-size: 18px;
-    text-align: center;
-}
+
 </style>
 {% endblock %}

@@ -1,141 +1,117 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<style>
-  .product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-  }
+<div class="container">
+    <header>
+        <div class="header-links">
+            <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+            <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+            <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+        </div>
+    </header>
+<h1>Marketplace</h1>
+<div class="product-gallery" style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; padding: 2rem;">
+    {% for product in products %}
+    <div class="product-card" style="border: 1px solid #ccc; border-radius: 10px; padding: 1rem; width: 300px;">
+        <div class="product-images" style="margin-bottom: 1rem;">
+            {% if product.images %}
+            <div id="carousel-{{ product.product_id }}" class="carousel" style="position: relative;">
+                <img src="{{ url_for('static', filename=product.images[0].replace('static\\', '').replace('\\', '/')) }}"
+                id="carousel-img-{{ product.product_id }}"
+                style="width: 100%; height: auto; border-radius: 10px;">
 
-  .product-card {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
-  }
 
-  .product-img-container {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    border-radius: 6px;
-  }
+                {% if product.images|length > 1 %}
+                <button 
+                    class="next-btn" 
+                    data-product-id="{{ product.product_id }}" 
+                    data-images='[{% for img in product.images %}
+                    "{{ img.replace('static\\', '').replace('\\', '/') }}"{% if not loop.last %},{% endif %}
+                    {% endfor %}]'
 
-  .product-img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+                    style="position: absolute; right: 5px; bottom: 5px;">
+                    Next
+                </button>
+                {% endif %}
+            </div>
+            {% else %}
+            <p>No images</p>
+            {% endif %}
+        </div>
 
-  .carousel-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(255,255,255,0.8);
-    border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
-  }
+        <h3>{{ product.title }}</h3>
+        <p>{{ product.description }}</p>
+        <p><strong>Price:</strong> ${{ "%.2f"|format(product.price) }}</p>
+        <p><strong>Stock:</strong> {{ product.stock }}</p>
+        <p><strong>Warranty:</strong> {{ product.warranty }}</p>
 
-  .carousel-btn.left {
-    left: 10px;
-  }
-
-  .carousel-btn.right {
-    right: 10px;
-  }
-
-  .color-swatch {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    margin-right: 5px;
-    display: inline-block;
-  }
-
-  .size-select {
-    width: 100%;
-    padding: 6px;
-    margin-top: 5px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-  }
-</style>
-
-<h1>Product Gallery</h1>
-
-<div class="product-grid">
-  {% for product in products %}
-    <div class="product-card">
-
-      <div class="product-img-container"
-           id="carousel-{{ loop.index0 }}"
-           data-images='{{ product.images | tojson | safe }}'
-           data-index="0">
-
-        {% if product.images %}
-          <img src="{{ product.images[0] }}" id="img-{{ loop.index0 }}-active" alt="Product Image">
-
-          {% if product.images|length > 1 %}
-          <button class="carousel-btn left" data-action="prev" data-target="{{ loop.index0 }}">←</button>
-          <button class="carousel-btn right" data-action="next" data-target="{{ loop.index0 }}">→</button>
-          
-          {% endif %}
-        {% else %}
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #eee;">
-            No Image
-          </div>
+        {% if product.colors %}
+        <div class="product-colors" style="margin-top: 0.5rem;">
+            <strong>Colors:</strong>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                {% for color in product.colors %}
+                <div title="{{ color }}" style="width: 20px; height: 20px; border-radius: 50%; background-color: '{{ color }}'; border: 1px solid #000;"></div>
+                {% endfor %}
+            </div>
+        </div>
         {% endif %}
-      </div>
 
-      <h2 style="margin-top: 10px;">{{ product.title }}</h2>
-      <p style="font-size: 14px; color: #666;">{{ product.description }}</p>
-      <p style="font-weight: bold; margin: 5px 0;">${{ "%.2f"|format(product.price) }}</p>
-
-      <!-- Color Swatches -->
-      <div style="margin-top: 10px;">
-        {% for color in product.colors %}
-        {% set bg_color = color if color.startswith('#') else '#' + color %}
-        
-        <div class="color-swatch" title="{{ color }}" style="background-color: {{ bg_color }};"></div>
-        
-        {% endfor %}
-      </div>
-
-      <div style="margin-top: 10px;">
-        <label style="font-size: 14px;">Available Sizes:</label>
-        <select class="size-select">
-          {% for size in product.sizes %}
-            <option>{{ size }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
+        {% if product.sizes %}
+        <div class="product-sizes" style="margin-top: 0.5rem;">
+            <strong>Sizes:</strong>
+            <div>
+                {% for size in product.sizes %}
+                <span style="margin-right: 5px;">{{ size }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
-  {% endfor %}
+    {% endfor %}
 </div>
-
+<style>
+    header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.link {
+    text-decoration: none;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    padding-top: 20px;
+}
+.link:hover {
+    color: #ab67eb;
+}
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+</style>
 <script>
-  function prevImage(i) {
-    const container = document.getElementById(`carousel-${i}`);
-    const images = JSON.parse(container.dataset.images);
-    let index = parseInt(container.dataset.index);
-    index = (index - 1 + images.length) % images.length;
-    container.dataset.index = index;
-    document.getElementById(`img-${i}-active`).src = images[index];
-  }
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.next-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const productId = btn.dataset.productId;
+            const images = JSON.parse(btn.dataset.images);
+            const img = document.getElementById('carousel-img-' + productId);
 
-  function nextImage(i) {
-    const container = document.getElementById(`carousel-${i}`);
-    const images = JSON.parse(container.dataset.images);
-    let index = parseInt(container.dataset.index);
-    index = (index + 1) % images.length;
-    container.dataset.index = index;
-    document.getElementById(`img-${i}-active`).src = images[index];
-  }
+            const currentSrc = img.src.split('/static/')[1];
+            const currentIndex = images.indexOf(currentSrc);
+            const nextIndex = (currentIndex + 1) % images.length;
+            img.src = `/static/${images[nextIndex]}`;
+
+        });
+    });
+});
 </script>
 {% endblock %}

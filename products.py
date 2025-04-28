@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import text
 from db import engine
 import os
+import json
 
 products_bp = Blueprint('products', __name__, url_prefix='/products')
 products_bp = Blueprint('products', __name__)
@@ -14,6 +15,10 @@ from collections import defaultdict
 @products_bp.route('/')
 def create():
     return render_template('create_products.html')
+
+
+
+
 
 @products_bp.route('/create', methods=['GET', 'POST'])
 def create_product():
@@ -160,32 +165,14 @@ def product_gallery():
 
 
 
-
-
-
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
     with engine.connect() as conn:
         if request.method == 'POST':
             title = request.form['title']
             description = request.form['description']
-            warranty = request.form['warranty']
-            stock = request.form['stock']
-            price = request.form['price']
+            warranty = request.form['warranty'] 
 
-            sql = text("""
-                UPDATE product 
-                SET title=:title, description=:desc, warranty=:warranty, stock=:stock, price=:price 
-                WHERE product_id=:id
-            """)
-            conn.execute(sql, {
-                'title': title,
-                'desc': description,
-                'warranty': warranty or None,
-                'stock': stock,
-                'price': price,
-                'id': product_id
-            })
             conn.commit()
             flash("Product updated.")
             return redirect(url_for('products.all_products'))
@@ -195,7 +182,7 @@ def edit_product(product_id):
             flash("Product not found.")
             return redirect(url_for('index'))
 
-    return render_template('edit_product.html', product=result)
+    return render_template('all_products.html', product=result)
 
 
 @products_bp.route('/delete/<int:product_id>', methods=['POST'])
@@ -213,4 +200,4 @@ def all_products():
     with engine.connect() as conn:
         result = conn.execute(text("SELECT * FROM product")).fetchall()
 
-    return render_template('all_products.html', products=result)
+    return render_template('all_products.html')
