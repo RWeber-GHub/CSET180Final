@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <div class="container">
     <header>
         <div class="header-links">
@@ -9,92 +10,96 @@
             <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
         </div>
     </header>
-<h1>Marketplace</h1>
-<div class="product-gallery" style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; padding: 2rem;">
-    {% for product in products %}
-    <div class="product-card" style="border: 1px solid #ccc; border-radius: 10px; padding: 1rem; width: 300px;">
-        <div class="product-images" style="margin-bottom: 1rem;">
-            {% if product.images %}
-            <div id="carousel-{{ product.product_id }}" class="carousel" style="position: relative;">
-                <img src="{{ url_for('static', filename=product.images[0].replace('static\\', '').replace('\\', '/')) }}"
-                id="carousel-img-{{ product.product_id }}"
-                style="width: 100%; height: auto; border-radius: 10px;">
-
-
-                {% if product.images|length > 1 %}
-                <button 
-                    class="next-btn" 
-                    data-product-id="{{ product.product_id }}" 
-                    data-images='[{% for img in product.images %}
-                    "{{ img.replace('static\\', '').replace('\\', '/') }}"{% if not loop.last %},{% endif %}
-                    {% endfor %}]'
-
-                    style="position: absolute; right: 5px; bottom: 5px;">
-                    Next
-                </button>
+    <h1>Marketplace</h1>
+    <div class="product-gallery">
+        {% for product in products %}
+        <div class="product-card">
+            <div class="product-images">
+                {% if product.images %}
+                <div id="carousel-{{ product.product_id }}" class="carousel">
+                    <img src="{{ url_for('static', filename=product.images[0].replace('static\\', '').replace('\\', '/')) }}"
+                        id="carousel-img-{{ product.product_id }}">
+                    {% if product.images|length > 1 %}
+                    <button class="next-btn" data-product-id="{{ product.product_id }}" data-images='[{% for img in product.images %}"{{ img.replace("static\\", "").replace("\\", "/") }}"{% if not loop.last %},{% endif %}{% endfor %}]'>
+                        Next
+                    </button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p>No images</p>
                 {% endif %}
             </div>
-            {% else %}
-            <p>No images</p>
-            {% endif %}
-        </div>
 
-        <h3>{{ product.title }}</h3>
-        <p>{{ product.description }}</p>
-        <p><strong>Price:</strong> ${{ "%.2f"|format(product.price) }}</p>
-        <p><strong>Stock:</strong> {{ product.stock }}</p>
-        <p><strong>Warranty:</strong> {{ product.warranty }}</p>
-
-        {% if product.colors %}
-        <div class="product-colors" style="margin-top: 0.5rem;">
-            <strong>Colors:</strong>
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
-                {% for color in product.colors %}
-                <div title="{{ color }}" style="width: 20px; height: 20px; border-radius: 50%; background-color: '{{ color }}'; border: 1px solid #000;"></div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if product.sizes %}
-        <div class="product-sizes" style="margin-top: 0.5rem;">
-            <strong>Sizes:</strong>
-            <div>
-                {% for size in product.sizes %}
-                <span style="margin-right: 5px;">{{ size }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        <form method="POST" action="{{ url_for('user.products') }}">
-            <input type="hidden" name="product_id" value="{{ product.product_id }}">
-            <!-- <input type="hidden" name="color" value="{{ product.color }}">
-            <input type="hidden" name="size" value="{{ product.size }}"> -->
-            <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
-            <input type="submit" value="Add to Cart">
-        </form>
-        <div class="product-card">
             <h3>{{ product.title }}</h3>
             <p>{{ product.description }}</p>
+            <p><strong>Price:</strong> ${{ "%.2f"|format(product.price) }}</p>
+            <p><strong>Stock:</strong> {{ product.stock }}</p>
+            <p><strong>Warranty:</strong> {{ product.warranty }}</p>
+
+            <form method="POST" action="{{ url_for('user.products') }}">
+                <input type="hidden" name="product_id" value="{{ product.product_id }}">
+
+                {% if product.colors %}
+                <div class="product-colors">
+                    <strong>Colors:</strong>
+                    <div class="color-options">
+                        {% for color in product.colors %}
+                        <div class="color-circle" title="{{ color }}" data-color="{{ color }}"
+                            style="background-color: {{ color }};">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="color" class="color-input">
+                </div>
+                {% endif %}
+
+                {% if product.sizes %}
+                <div class="product-sizes">
+                    <strong>Sizes:</strong>
+                    <select name="size">
+                        {% for size in product.sizes %}
+                        <option value="{{ size }}">{{ size }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
+                <input type="submit" value="Add to Cart">
+            </form>
+
             <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
                 <button>Edit Product</button>
             </a>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
+
 <style>
-    header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 40px;
+body {
+    background-color: #f4f2fa;
+    font-family: Arial, sans-serif;
 }
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+
 .link {
     text-decoration: none;
     font-size: 16px;
@@ -103,14 +108,95 @@
     transition: color 0.3s ease;
     padding-top: 20px;
 }
+
 .link:hover {
     color: #ab67eb;
 }
-.header-links {
+
+.product-gallery {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.product-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+    width: 300px;
+    text-align: center;
+}
+
+.product-images img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+}
+
+.carousel {
+    position: relative;
+}
+
+.next-btn {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    padding: 5px 10px;
+    border: none;
+    background-color: #6a0dad;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.color-options {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.25rem;
+}
+
+.color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.color-circle:hover {
+    transform: scale(1.1);
+}
+
+.color-circle.selected {
+    border: 3px solid #6a0dad;
+}
+
+select {
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+input[type="submit"], button {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #6a0dad;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover, button:hover {
+    background-color: #5a0cab;
 }
 </style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.next-btn').forEach(btn => {
@@ -118,12 +204,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const productId = btn.dataset.productId;
             const images = JSON.parse(btn.dataset.images);
             const img = document.getElementById('carousel-img-' + productId);
-
             const currentSrc = img.src.split('/static/')[1];
             const currentIndex = images.indexOf(currentSrc);
             const nextIndex = (currentIndex + 1) % images.length;
             img.src = `/static/${images[nextIndex]}`;
+        });
+    });
 
+    document.querySelectorAll('.product-colors').forEach(section => {
+        const input = section.querySelector('.color-input');
+        section.querySelectorAll('.color-circle').forEach(circle => {
+            circle.addEventListener('click', () => {
+                section.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
+                circle.classList.add('selected');
+                input.value = circle.dataset.color;
+            });
         });
     });
 });

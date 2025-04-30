@@ -19,27 +19,45 @@ def user():
 
 @user_bp.route('/chat')
 def chat():
-    user_id = session['user_id']
-    chats = conn.execute(text("""
-        select * from chat where user_id = :user_id
+    user_type = session['user_type']
+    if user_type == 'A':
+        chats = conn.execute(text("""
+            select name, email, user_id from user where user_type = 'B'
+        """)).fetchall()
+    return render_template('chat.html', chats=chats)
+
+@user_bp.route('/view_chat', methods=['GET', 'POST'])
+def view_chat():
+    user_id = session['user_id']                                                                                                                                    
+    vendor_id = request.form['user_id']
+    chat = conn.execute(text("""
+        select chat_id from chat where user_id = user_id and admin_id = :vendor_id
     """), {
-        'user_id': user_id
+        'user_id': user_id,
+        'vendor_id': vendor_id
     }).fetchall()
-    all_chats = []
-    for chat in chats:
-        chat_id = chat.chat_id
-        messages = conn.execute(text("""
-            select * from msg where chat_id = :chat_id order by msg_id asc
+    if not chat:
+        conn.execute(text("""
+            insert into chat (user_id, admin_id)
+            values 
+            (:user_id, :vendor_id)
         """), {
-            'chat_id': chat_id
-        }).fetchall()
-        all_chats.append({
-            'chat_id': chat_id,
-            'user_id': chat.user_id,
-            'admin_id': chat.admin_id,
-            'messages': messages
+          'user_id': user_id,
+          'vendor_id': vendor_id
         })
-    return render_template('chat.html', chats=all_chats)
+        conn.commit()
+    my_msgs = conn.execute(text("""
+        select text, image, msg_date from msg where user_id = user_id
+    """), {
+        'user_id': user_id,
+    }).fetchall()
+    vendor_msgs = conn.execute(text("""
+        select text, image, msg_date from msg where user_id = user_id
+    """), {
+        'user_id': vendor_id,
+    }).fetchall()
+
+    return render_template('chat.html', my_msgs=my_msgs, vendor_msgs=vendor_msgs, chat=chat)
 
 @user_bp.route('/products', methods=['GET', 'POST'])
 def products():
@@ -47,8 +65,6 @@ def products():
     if request.method == 'POST':
         product_id = request.form['product_id']
         quantity = int(request.form['quantity'])
-        # color
-
         cart = conn.execute(text("""
             select cart_id from cart where user_id = :user_id
         """), {
@@ -260,10 +276,10 @@ def view_orders():
 
         for user_order in user_orders:
             user_id = user_order.user_id
-            # status = conn.execute(text("""select status from orders where order_id = :order_id
-            # """), {
-            # 'order_id': user_order.order_id
-            # }).fetchone()
+            status = conn.execute(text("""select status from orders where order_id = :order_id
+            """), {
+            'order_id': user_order.order_id
+            }).fetchone()
             if user_id not in grouped_orders:
                 grouped_orders[user_id] = {
                     'name': user_order.name,
@@ -286,7 +302,7 @@ def view_orders():
                     'image': product.image
                 })
             grouped_orders[user_id]['orders'][user_order.order_id] = product_list
-        return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders)
+        return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders, status=status)
 
     return render_template('orders.html')
 
@@ -330,25 +346,17 @@ def review():
         return redirect(url_for('user.user'))
     if user_type == 'B':
         products = conn.execute(text("""
-           SELECT 
-            p.title,
-            p.description,
-            p.price,
-            p.stock,
-            r.rating,
-            r.description AS review_description,
-            r.image AS review_image,
-            r.review_date,
-            i.image AS product_image
-            FROM product p
-            INNER JOIN reviews r ON p.product_id = r.product_id  -- Changed to INNER JOIN
-            LEFT JOIN product_images pi ON p.product_id = pi.product_id
-            LEFT JOIN images i ON pi.image_id = i.image_id
-            WHERE p.user_id = :user_id
+            select p.title, p.description, p.price, p.stock,
+            r.rating, r.description as review_description, r.image AS review_image, r.review_date,
+            i.image as product_image
+            from product p
+            inner join reviews r on p.product_id = r.product_id
+            left join product_images pi on p.product_id = pi.product_id
+            left join images i on pi.image_id = i.image_id
+            where p.user_id = :user_id
         """), {
             'user_id': user_id
         }).fetchall()
-        print(f'***{products}***')
     return render_template('reviews.html', products=products, user_type=user_type)
 
 @user_bp.route('/post_review', methods=['GET', 'POST'])
@@ -383,8 +391,16 @@ def post_review():
 def complaint():
     user_type = session['user_type']
     user_id = session['user_id']
+    
+
     if user_type == 'A':
         product_id = request.form['product_id']
+        complaints = conn.execute(text("""
+            select * from complaints where user_id = :user_id and product_id = :product_id
+        """), {
+            'user_id': user_id,
+            'product_id': product_id
+        }).fetchall()
         products = conn.execute(text("""
             select p.title, p.price, i.image, p.description, p.product_id
             from product p
@@ -394,5 +410,82 @@ def complaint():
         """), {
             'product_id': product_id
         }).fetchall()
+        return render_template('complaints.html', user_type=user_type, products=products, complaints=complaints)
+    if user_type == 'B':
+        complaints = conn.execute(text("""
+            SELECT c.user_id, c.product_id, c.description, c.title, c.complaint_type, 
+            u.username, 
+            p.title AS product_title,
+            i.image AS product_image
+            from complaints c
+            join product p on c.product_id = p.product_id
+            join user u on c.user_id = u.user_id
+            left join product_images pi on p.product_id = pi.product_id
+            left join images i on pi.image_id = i.image_id
+            where p.user_id = :user_id;
+        """), {
+            'user_id': user_id
+        }).fetchall()
+        print(f'^^^{complaints}^^^')
+    return render_template('complaints.html', user_type=user_type, complaints=complaints)
 
-    return render_template('complaints.html', user_type=user_type, products=products)
+
+@user_bp.route('/post_complaint', methods=['GET', 'POST'])
+def post_complaint():
+    user_id = session['user_id']
+    product_id = request.form['product_id']
+    complaints = conn.execute(text("""
+        select * from complaints where user_id = :user_id and product_id = :product_id
+    """), {
+        'user_id': user_id,
+        'product_id': product_id
+    }).fetchall()
+    
+    if not complaints:
+        if request.method == 'POST':
+            product_id = request.form['product_id']
+            title = request.form['title']
+            description = request.form['description']
+            complaint_type = request.form['complaint']
+            now = datetime.now()
+            complaint_date = now.strftime("%Y-%m-%d")
+            conn.execute(text("""
+                insert into complaints (user_id, product_id, complaint_type, complaint_date, title, description)
+                values
+                (:user_id, :product_id, :complaint_type, :complaint_date, :title, :description)
+            """), {
+                'user_id': user_id,
+                'product_id': product_id,
+                'complaint_type': complaint_type,
+                'complaint_date': complaint_date,
+                'title': title,
+                'description': description
+            })
+            conn.commit()
+        return redirect(url_for('user.view_orders'))
+    else:
+        product_id = request.form['product_id']
+        title = request.form['title']
+        description = request.form['description']
+        complaint_type = request.form['complaint']
+        now = datetime.now()
+        complaint_date = now.strftime("%Y-%m-%d")
+        conn.execute(text("""
+            update complaints set 
+            complaint_type = :complaint_type,
+            complaint_date = :complaint_date,
+            title = :title,
+            description = :description
+            where 
+            user_id = :user_id and 
+            product_id = :product_id
+        """), {
+            'user_id': user_id,
+            'product_id': product_id,
+            'complaint_type': complaint_type,
+            'complaint_date': complaint_date,
+            'title': title,
+            'description': description
+        })
+        conn.commit()
+    return redirect(url_for('user.view_orders'))

@@ -1,5 +1,6 @@
 {% extends 'base.html'%}
 {% block content %}
+<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
     <div class="container">
         <header>
@@ -8,29 +9,49 @@
         </header>
     </div>
     <div>
-        <form method="POST" action="{{ url_for('user.chat') }}">
-            <input type="text" name="msg" required placeholder="Message">
-            <input type="submit" value="Send">
-        </form>    
-        <h1>Your Chats</h1>
-        {% for chat in chats %}
-            <h2>Chat ID: {{ chat.chat_id }}</h2>
-            <ul>
-            {% for msg in chat.messages %}
-                <li>
-                    <strong>User {{ msg.user_id }}:</strong> {{ msg.text }} 
-                </li>
+        {% if chats %}
+            {% for chat in chats %}
+                <div class="chat-card">
+                    <div class="chat-info">
+                    <p><strong>{{ chat.name }}</strong></p>
+                    <p><strong>{{ chat.email }}</strong></p>
+                    <form method="POST" action="{{ url_for('user.view_chat') }}">
+                        <input type="hidden" name="user_id" value="{{ chat.user_id }}">
+                        <p><strong>{{ chat.user_id }}</strong></p>
+                        <input type="submit" value="Chat">
+                    </form>
+                </div>
+            </div>
             {% endfor %}
-            </ul>
-        {% endfor %}
-        {% if e %}
-            <h1>{{  e  }}</h1>
+        {% endif %}
+        {% if chat %}
+       
         {% endif %}
     </div>
 </body>
 <style>
-    a:visited{
+a:visited{
     color: white;
+}
+.chat-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.chat-info {
+    background: #6e31a6;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
 }
 </style>
 {% endblock %}

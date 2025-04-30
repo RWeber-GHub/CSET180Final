@@ -1,5 +1,6 @@
 {% extends 'base.html'%}
 {% block content %}
+<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
     <div class="container">
         <header>
@@ -63,10 +64,12 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <form method="POST" action="{{ url_for('user.approve_order') }}">
-                            <input type="hidden" name="order_id" value="{{ order_id }}">
-                            <button type="submit">Approve</button>
-                        </form>
+                        {% if status == 'pending' %}
+                            <form method="POST" action="{{ url_for('user.approve_order') }}">
+                                <input type="hidden" name="order_id" value="{{ order_id }}">
+                                <button type="submit">Approve</button>
+                            </form>
+                        {% endif %}
                     {% endfor %}
                 </div>
             {% endfor %}

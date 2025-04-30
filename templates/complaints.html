@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
     <div class="container">
         <header>
@@ -14,62 +15,104 @@
         {% if user_type == 'A' %}
             <div class="products-container">
                 <div class="product-card">
-                {% for product in products%}
+                {% for product in products %}
                     <div class="product-info">
                         <h3>{{ product.title }}</h3>
                         <img src="{{  product.image  }}" alt="">
                         <p>{{ product.description }}</p>
                         <p>${{ product.price}}</p>
                     </div>
-                <form method="POST" action="{{ url_for('user.complaint') }}">
+                <form method="POST" action="{{ url_for('user.post_complaint') }}">
                     <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                    <input type="text" name="title" placeholder="Complaint Title: ">
-                    <textarea name="description" placeholder="Enter your message here"></textarea>
-                    <br>
-
-                    <label class="radio">
-                        <input type="radio" name="complaint" value="return">
-                        <span class="mark"></span>
-                        Return
-                    </label>
-                    <label class="radio">
-                        <input type="radio" name="complaint" value="refund">
-                        <span class="mark"></span>
-                        Refund
-                    </label>
-                    <label class="radio">
-                        <input type="radio" name="complaint" value="warrenty">
-                        <span class="mark"></span>
-                        Warrenty
-                    </label>
+                    {% if complaints %}
+                        {% for complaint in complaints%}
+                            <input type="text" name="title" placeholder="Complaint Title: " value="{{ complaint.title }}">
+                            <textarea name="description" placeholder="Enter your message here">{{ complaint.description }}</textarea>
+                        {% endfor %}
+                    {% endif %}
+                    {% if not complaints %}
+                        <input type="text" name="title" placeholder="Complaint Title: ">
+                        <textarea name="description" placeholder="Enter your message here"></textarea>
+                    {% endif %}
+                    {% if complaints %}
+                        {% for complaint in complaints%}
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'A' %}
+                                    <input type="radio" name="complaint" value="A" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="A">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Return
+                            </label>
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'B' %}
+                                    <input type="radio" name="complaint" value="B" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="B">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Refund
+                            </label>
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'C' %}
+                                    <input type="radio" name="complaint" value="C" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="C">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Warrenty
+                            </label>
+                        {% endfor %}
+                        {% endif %}
+                        {% if not complaints %}
+                            <label class="radio">
+                                <input type="radio" name="complaint" value="A">
+                                <span class="mark"></span>
+                                Return
+                            </label>
+                            <label class="radio">
+                                <input type="radio" name="complaint" value="B">
+                                <span class="mark"></span>
+                                Refund
+                            </label>
+                            <label class="radio">
+                                <input type="radio" name="complaint" value="C">
+                                <span class="mark"></span>
+                                Warrenty
+                            </label>
+                        {% endif %}
+                    {% endfor %}
+                    <input type="submit" value="Send">
                 </form>
-                {% endfor %}
-                </div>
             </div>
+        </div>
         {% endif %}
         {% if user_type == 'B' %}
-        <!-- <div class="products-container">
+        <div class="products-container">
             <div class="product-card">
-                {% for product in products %}
+                {% for complaint in complaints %}
                 <div class="product-card">
                     <div class="product-info">
-                        <h3>{{ product.title }}</h3>
-                        <img src="{{ product.product_image }}" class="product-image" alt="">
-                        <p><strong>{{ product.description }}</strong></p>
-                        <p><strong>Price:</strong> ${{ "%.2f"|format(product.price) }}</p>
-                        <p><strong>Stock:</strong> {{ product.stock }}</p>
-                        <div class="reviews">
-                            <p>Rating: {{ product.rating }} stars</p>
-                            <p>{{ product.review_description }}</p>
-                            {% if product.review_image %}
-                            <img src="{{ product.review_image }}" alt="No Image">
-                            {% endif %}
-                        </div>
+                        <h3>Title: {{ complaint.title }}</h3>
+                        <p><strong>Username: {{ complaint.username }}</strong></p>
+                        <p><strong>Description: {{ complaint.description }}</strong></p>
+                        <p><strong>Product Name: {{ complaint.product_title }}</strong></p>
+                        <img src="{{ complaint.product_image }}" class="product-image" alt="">
+                        {% if complaint.complaint_type == 'A' %}
+                            <p><strong>Complaint Type: Retund</strong></p>
+                        {% endif %}
+                        {% if complaint.complaint_type == 'B' %}
+                            <p><strong>Complaint Type: Refund</strong></p>
+                        {% endif %}
+                        {% if complaint.complaint_type == 'C' %}
+                            <p><strong>Complaint Type: Warrenty</strong></p>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
-    </div>
-</div> -->
+            </div>
+        </div>
         {% endif %}
     </div>
 </body>
