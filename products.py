@@ -6,18 +6,15 @@ import os
 import json
 
 products_bp = Blueprint('products', __name__, url_prefix='/products')
-products_bp = Blueprint('products', __name__)
 
 
 from collections import defaultdict
 
 
+
 @products_bp.route('/')
 def create():
     return render_template('create_products.html')
-
-
-
 
 
 @products_bp.route('/create', methods=['GET', 'POST'])
@@ -121,7 +118,7 @@ def create_product():
                                  {'pid': product_id, 'imgid': image_id})
 
         flash("Product created successfully with variants.")
-        return redirect(url_for('products.all_products'))
+        return redirect(url_for('products.product_gallery'))
 
     with engine.connect() as conn:
         sizes = conn.execute(text("SELECT size_id, size FROM sizes")).fetchall()
@@ -164,25 +161,79 @@ def product_gallery():
     return render_template('all_products.html', products=products)
 
 
-
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         if request.method == 'POST':
             title = request.form['title']
             description = request.form['description']
-            warranty = request.form['warranty'] 
+            warranty = request.form['warranty']
+            conn.execute(text("""
+                UPDATE product
+                SET title = :title, description = :description, warranty = :warranty
+                WHERE product_id = :pid
+            """), {
+                'title': title,
+                'description': description,
+                'warranty': warranty or None,
+                'pid': product_id
+            })
 
-            conn.commit()
-            flash("Product updated.")
-            return redirect(url_for('products.all_products'))
+            flash('Product updated successfully.')
+            return redirect(url_for('products.product_gallery'))
 
-        result = conn.execute(text("SELECT * FROM product WHERE product_id=:id"), {'id': product_id}).fetchone()
-        if result is None:
-            flash("Product not found.")
-            return redirect(url_for('index'))
 
-    return render_template('all_products.html', product=result)
+        product = conn.execute(text("""
+            SELECT * FROM product WHERE product_id = :pid
+        """), {'pid': product_id}).mappings().first()
+
+        variants = conn.execute(text("""
+            SELECT pv.variant_id, c.color, s.size, pv.variant_stock, pv.price
+            FROM product_variants pv
+            JOIN colors c ON pv.color_id = c.color_id
+            JOIN sizes s ON pv.size_id = s.size_id
+            WHERE pv.product_id = :pid
+        """), {'pid': product_id}).mappings().all()
+
+        return render_template('edit_product.html', product=product, variants=variants)
+
+@products_bp.route('/update_variant/<int:variant_id>', methods=['POST'])
+def update_variant(variant_id):
+    color = request.form['color'].strip()
+    size = request.form['size'].strip().upper()
+    stock = int(request.form['stock'])
+    price = float(request.form['price'])
+
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO colors (color) VALUES (:color)
+            ON DUPLICATE KEY UPDATE color_id = LAST_INSERT_ID(color_id)
+        """), {'color': color})
+        color_id = conn.execute(text("SELECT LAST_INSERT_ID()")).scalar()
+
+        size_row = conn.execute(text("SELECT size_id FROM sizes WHERE size = :size"), {'size': size}).first()
+        if not size_row:
+            flash(f"Size '{size}' not found.")
+            return redirect(request.referrer)
+        size_id = size_row.size_id
+
+        conn.execute(text("""
+            UPDATE product_variants
+            SET color_id = :cid, size_id = :sid, variant_stock = :stock, price = :price
+            WHERE variant_id = :vid
+        """), {
+            'cid': color_id,
+            'sid': size_id,
+            'stock': stock,
+            'price': price,
+            'vid': variant_id
+        })
+
+    flash("Variant updated.")
+    return redirect(request.referrer)
+
+
+
 
 
 @products_bp.route('/delete/<int:product_id>', methods=['POST'])
@@ -192,12 +243,5 @@ def delete_product(product_id):
         conn.commit()
 
     flash("Product deleted.")
-    return redirect(url_for('products.all_products'))
+    return redirect(url_for('products.product_gallery'))
 
-
-@products_bp.route('/all')
-def all_products():
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT * FROM product")).fetchall()
-
-    return render_template('all_products.html')

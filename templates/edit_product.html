@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Edit Product</h2>
+<form method="POST">
+    <label for="title">Title:</label>
+    <input type="text" name="title" value="{{ product.title }}" required><br>
+
+    <label for="description">Description:</label>
+    <textarea name="description" required>{{ product.description }}</textarea><br>
+
+    <label for="warranty">Warranty (YYYY-MM-DD):</label>
+    <input type="date" name="warranty" value="{{ product.warranty }}"><br>
+
+    <button type="submit">Save Changes</button>
+</form>
+
+<hr>
+
+<h3>Variants</h3>
+<button id="toggleVariants">Modify Variants</button>
+<div id="variantSection" style="display:none; margin-top:1em;">
+    {% for v in variants %}
+        <form method="POST" action="{{ url_for('products.update_variant', variant_id=v.variant_id) }}" style="margin-bottom: 1em;">
+            Color: <input type="text" name="color" value="{{ v.color }}">
+            Size: <input type="text" name="size" value="{{ v.size }}">
+            Stock: <input type="number" name="stock" value="{{ v.variant_stock }}">
+            Price: <input type="text" name="price" value="{{ v.price }}">
+            <button type="submit">Update Variant</button>
+        </form>
+    {% endfor %}
+</div>
+
+<script>
+document.getElementById('toggleVariants').addEventListener('click', function() {
+    const section = document.getElementById('variantSection');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+});
+</script>
+{% endblock %}

@@ -21,26 +21,34 @@
                         <p>{{ product.description }}</p>
                         <p>${{ product.price}}</p>
                     </div>
-                <form method="POST" action="{{ url_for('user.post_review') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ url_for('user.complaint') }}">
                     <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                    <textarea name="description" placeholder="Please write your review here!"></textarea>
-                    <input type="range" min="1" max="5" step="1" list="list" name="rating">
-                    <datalist id="list">
-                        <option value="1" label="*"></option>
-                        <option value="2" label="**"></option>
-                        <option value="3" label="***"></option>
-                        <option value="4" label="****"></option>
-                        <option value="5" label="*****"></option>
-                    </datalist>
-                    <input type="file" name="image" accept="image/*">
-                    <input type="submit" value="Post">
+                    <input type="text" name="title" placeholder="Complaint Title: ">
+                    <textarea name="description" placeholder="Enter your message here"></textarea>
+                    <br>
+
+                    <label class="radio">
+                        <input type="radio" name="complaint" value="return">
+                        <span class="mark"></span>
+                        Return
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="complaint" value="refund">
+                        <span class="mark"></span>
+                        Refund
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="complaint" value="warrenty">
+                        <span class="mark"></span>
+                        Warrenty
+                    </label>
                 </form>
                 {% endfor %}
                 </div>
             </div>
         {% endif %}
         {% if user_type == 'B' %}
-        <div class="products-container">
+        <!-- <div class="products-container">
             <div class="product-card">
                 {% for product in products %}
                 <div class="product-card">
@@ -61,39 +69,61 @@
                 </div>
             {% endfor %}
     </div>
-</div>
+</div> -->
         {% endif %}
     </div>
 </body>
 <style>
-.reviews {
-    background-color: #51048c;
+.radio {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  font-family: sans-serif;
+  margin-right: 20px;
+  position: relative;
+  font-size: 16px;
 }
-datalist {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  writing-mode: vertical-lr;
-  width: 200px;
+
+.radio input[type="radio"] {
+  display: none;
 }
-option {
-  padding: 0;
+
+.mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ccc, #eee);
+  margin-right: 10px;
+  position: relative;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
-input[type="range"] {
-  width: 200px;
-  margin: 0;
+
+.radio input[type="radio"]:checked + .mark {
+  background: linear-gradient(135deg, #6e31a6, #51048c);
+  box-shadow: 0 0 0 3px rgba(229, 46, 113, 0.3);
 }
-datalist {
-    margin: auto;
+
+.radio input[type="radio"]:checked + .mark::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 10px;
+  height: 10px;
+  background-color: white;
+  border-radius: 50%;
 }
 textarea {
+  border: none;
+  background-color: #6e31a6;
   resize: none;
   width: 300px;
   height: 100px;
   margin: 0;
 }
 textarea:focus {
-  background-color: #6e31a6;
+  background-color: #51048c;
 }
 .container {
     max-width: 1200px;

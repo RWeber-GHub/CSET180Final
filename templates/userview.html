@@ -9,60 +9,115 @@
                 <a href="{{ url_for('user.products') }}" class="link">Shop</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
                 <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
-                {% if user_type == 'B' or user_type == 'C' %}
-                    <a href="{{ url_for('products.product_gallery') }}" class="link">Products</a>
+                {% if user_type in ['B', 'C'] %}
+                    <a href="{{ url_for('products.all_products') }}" class="link">Products</a>
+                    <a href="{{ url_for('user.review') }}" class="link">Reviews</a>
                 {% endif %}
             </div>
+            <h1 class="page-title">User Dashboard</h1>
         </header>
-
-    <h2>User Dashboard</h2>
-    <div class="user-info">
-        <ul>
-            <li>{{ user[0] }}</li>
-            <li>{{ user[1] }}</li>
-            <li>{{ user[2] }}</li>
-            <li>{{ user[3] }}</li>
-            <li>{{ user[4] }}</li>
-            <li>{{ user[5] }}</li>
-        </ul>
-        {% if e %}
-            <h1>{{  e  }}</h1>
-        {% endif %}
+        <div class="details-section">
+            <h2>Your Details</h2>
+            <div class="products-container">
+                <div class="product-card">
+                    <div class="product-info">
+                        <label for="name">---Name---</label>
+                        <h3 class="product-title" id="name">{{ user.name }}</h3>
+                        <label for="username">---Username---</label>
+                        <h3 class="product-title" id="username">{{ user.username }}</h3>
+                        <label for="email">---Email---</label>
+                        <h3 class="product-title" id="email">{{ user.email }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+    {% if e %}
+            <h1>{{  e  }}</h1>
+    {% endif %}
 </body>
 <style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
 }
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-.link {
-    text-decoration: none;
-    font-size: 16px;
-    color: white;
-    font-weight: bold;
-    transition: color 0.3s ease;
-    padding-top: 20px;
-}
-.link:hover {
-    color: #ab67eb;
-}
 .header-links {
     display: flex;
     gap: 20px;
 }
-.user-info{
-    background-color: #ab67eb;
+.link {
+    text-decoration: none;
+    font-size: 16px;
+    color: #6e31a6;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+.link:hover {
+    color: #51048c;
+}
+a:visited {
+    color: white;
+}
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
+}
+.details-section {
+    background-color: #6e31a6;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     padding: 30px;
+    margin-bottom: 40px;
+}
+.details-section h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+.products-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.product-card {
+    background: #51048c;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+}
+.product-image {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+.product-info {
+    color: #fff;
+}
+.product-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
 }
 </style>
 {% endblock %}

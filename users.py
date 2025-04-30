@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from sqlalchemy import create_engine, text
 import bcrypt
 from db import engine, conn
+from datetime import datetime
 
 user_bp = Blueprint("user", __name__, static_folder="static", template_folder="templates")
 
@@ -42,39 +43,31 @@ def chat():
 
 @user_bp.route('/products', methods=['GET', 'POST'])
 def products():
-    # user_id = session['user_id']
-    # if request.method == 'POST':
-    #     product_id = request.form['product_id']
-    #     quantity = int(request.form['quantity'])
+    user_id = session['user_id']
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        quantity = int(request.form['quantity'])
+        # color
 
-    #     cart = conn.execute(text("""
-    #         select cart_id from cart where user_id = :user_id
-    #     """), {
-    #         'user_id': user_id
-    #     }).fetchone()
-    #     cart_id = cart.cart_id
-    #     conn.execute(text("""
-    #         insert into cart_items (cart_id, product_id, color_id, size_id, quantity)
-    #         values 
-    #         (:cart_id, :product_id, :color_id, :size_id, :quantity)
-    #         on duplicate key update quantity = quantity + :quantity
-    #     """), {
-    #         'cart_id': cart_id,
-    #         'product_id': product_id,
-    #         'color_id': 1,
-    #         'size_id': 1,
-    #         'quantity': quantity
-    #     })
-    #     conn.commit()
-    # info = conn.execute(text("""
-    #     select p.title, p.description, p.stock, p.price, i.image, p.product_id
-    #     from product p
-    #     left join product_images pi on p.product_id = pi.product_id
-    #     left join images i on pi.image_id = i.image_id
-    #     order by p.product_id asc
-    # """)).fetchall()
-    # print(f'***{info}***')
-    # return render_template('products.html', products=info)
+        cart = conn.execute(text("""
+            select cart_id from cart where user_id = :user_id
+        """), {
+            'user_id': user_id
+        }).fetchone()
+        cart_id = cart.cart_id
+        conn.execute(text("""
+            insert into cart_items (cart_id, product_id, color_id, size_id, quantity)
+            values 
+            (:cart_id, :product_id, :color_id, :size_id, :quantity)
+            on duplicate key update quantity = quantity + :quantity
+        """), {
+            'cart_id': cart_id,
+            'product_id': product_id,
+            'color_id': 1,
+            'size_id': 1,
+            'quantity': quantity
+        })
+        conn.commit()
     return redirect(url_for('products.product_gallery'))
 
 @user_bp.route('/cart')
@@ -179,16 +172,61 @@ def place_order():
 def view_orders():
     user_type = session['user_type']
     user_id = session['user_id']
-
     if user_type == 'A':
         order_ids = conn.execute(text("""
-            select order_id from orders where user_id = :user_id
+            select order_id from orders where user_id = :user_id and status = "confirmed"
+        """), {
+            'user_id': user_id
+        }).fetchall()
+        order_ids_pen = conn.execute(text("""
+            select order_id from orders where user_id = :user_id and status = "pending"
         """), {
             'user_id': user_id
         }).fetchall()
         order_items = []
+        order_items_pen = []
+
         for order_row in order_ids:
             order_id = order_row[0]
+            print(f'***{order_id}***')
+            items = conn.execute(text("""
+                select product_id from order_products where order_id = :order_id
+            """), {
+                'order_id': order_id
+            }).fetchall()
+            print(f'***{items}***')
+            for item in items:
+                product = conn.execute(text("""
+                    select p.product_id, p.title, p.price, i.image
+                    from product p
+                    left join product_images pi on p.product_id = pi.product_id
+                    left join images i on pi.image_id = i.image_id
+                    where p.product_id = :product_id
+                """), {
+                    'product_id': item[0]
+                }).fetchone()
+
+                temp = conn.execute(text("""
+                    select *
+                    from reviews
+                    where product_id = :product_id AND user_id = :user_id
+                """), {
+                    'product_id': product.product_id,
+                    'user_id': user_id
+                })
+                if temp:
+                    temp = 1 
+                else:
+                    temp = 0
+                order_items.append({
+                    'product_id': product.product_id,
+                    'title': product.title,
+                    'image': product.image,
+                    'reviewed': temp
+                })
+        print(f'***{order_items}***')
+        for order_row_pen in order_ids_pen:
+            order_id = order_row_pen[0]
             items = conn.execute(text("""
                 select product_id from order_products where order_id = :order_id
             """), {
@@ -204,12 +242,13 @@ def view_orders():
                 """), {
                     'product_id': item[0]
                 }).fetchone()
-                order_items.append({
+                order_items_pen.append({
+                    'product_id': product.product_id,
                     'title': product.title,
                     'image': product.image,
                 })
-
-        return render_template('orders.html', order_items=order_items, user_type=user_type)
+  
+        return render_template('orders.html', order_items=order_items, order_items_pen=order_items_pen, user_type=user_type)
 
     if user_type == 'B':
         user_orders = conn.execute(text("""
@@ -221,13 +260,10 @@ def view_orders():
 
         for user_order in user_orders:
             user_id = user_order.user_id
-            status = conn.execute(text("""select status from orders where order_id = :order_id
-            """), {
-            'order_id': user_order.order_id
-            }).fetchone()
-            print(f'***{status}***')
-            if status[0] == 'confirmed':
-                print('hhhehehehhehe')
+            # status = conn.execute(text("""select status from orders where order_id = :order_id
+            # """), {
+            # 'order_id': user_order.order_id
+            # }).fetchone()
             if user_id not in grouped_orders:
                 grouped_orders[user_id] = {
                     'name': user_order.name,
@@ -265,3 +301,98 @@ def approve_order():
     })
     conn.commit()
     return render_template('orders.html')
+
+@user_bp.route('/review', methods=['GET', 'POST'])
+def review():
+    user_type = session['user_type']
+    user_id = session['user_id']
+    if user_type == 'A':
+        product_id = request.form['product_id']
+        product = conn.execute(text("""
+            select *
+            from reviews
+            where product_id = :product_id AND user_id = :user_id
+        """), {
+            'product_id': product_id,
+            'user_id': user_id
+        }).fetchall()
+        if product:
+            return render_template('reviews.html', products=products, user_type=user_type)
+        products = conn.execute(text("""
+            select p.title, p.price, i.image, p.description, p.product_id
+            from product p
+            left join product_images pi on p.product_id = pi.product_id
+            left join images i on pi.image_id = i.image_id
+            where p.product_id = :product_id
+        """), {
+            'product_id': product_id
+        }).fetchall()
+        return redirect(url_for('user.user'))
+    if user_type == 'B':
+        products = conn.execute(text("""
+           SELECT 
+            p.title,
+            p.description,
+            p.price,
+            p.stock,
+            r.rating,
+            r.description AS review_description,
+            r.image AS review_image,
+            r.review_date,
+            i.image AS product_image
+            FROM product p
+            INNER JOIN reviews r ON p.product_id = r.product_id  -- Changed to INNER JOIN
+            LEFT JOIN product_images pi ON p.product_id = pi.product_id
+            LEFT JOIN images i ON pi.image_id = i.image_id
+            WHERE p.user_id = :user_id
+        """), {
+            'user_id': user_id
+        }).fetchall()
+        print(f'***{products}***')
+    return render_template('reviews.html', products=products, user_type=user_type)
+
+@user_bp.route('/post_review', methods=['GET', 'POST'])
+def post_review():
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        user_id = session['user_id']
+        rating = request.form['rating']
+        description = request.form['description']
+        image = request.files['image']
+        now = datetime.now()
+        review_date = now.strftime("%Y-%m-%d")
+        try:
+            conn.execute(text("""
+                insert into reviews (user_id, product_id, rating, description, image, review_date)
+                values
+                (:user_id, :product_id, :rating, :description, :image, :review_date)
+            """), {
+                'user_id': user_id,
+                'product_id': product_id,
+                'rating': rating,
+                'description': description,
+                'image': image,
+                'review_date': review_date
+            })
+            conn.commit()
+        except Exception as e:
+            flash(f"Review submission failed: {e}", "danger")
+    return redirect(url_for('user.user'))
+
+@user_bp.route('/complaint', methods=['GET', 'POST'])
+def complaint():
+    user_type = session['user_type']
+    user_id = session['user_id']
+    if user_type == 'A':
+        product_id = request.form['product_id']
+        products = conn.execute(text("""
+            select p.title, p.price, i.image, p.description, p.product_id
+            from product p
+            left join product_images pi on p.product_id = pi.product_id
+            left join images i on pi.image_id = i.image_id
+            where p.product_id = :product_id
+        """), {
+            'product_id': product_id
+        }).fetchall()
+
+    return render_template('complaints.html', user_type=user_type, products=products)

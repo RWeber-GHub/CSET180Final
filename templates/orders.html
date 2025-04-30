@@ -6,56 +6,71 @@
             <div class="header-links">
                 <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
-                <a href="{{ url_for('user.products') }}" class="link">Shop</a>
             </div>
+            <h1 class="page-title">{{ type }} Orders</h1>
         </header>
-
         <div class="orders-section">
-            {% if user_type == 'A' %}
-                <h2>Your Orders</h2>
-            {% endif %}
-            {% if user_type == 'B' %}
-                <h2>Orders</h2>
-            {% endif %}
+        {% if user_type == 'A' %}
+            <h2>Pending Orders</h2>
             <div class="products-container">
-                {% if user_type == 'A' %}
-                    {% for order_item in order_items %}
-                        <div class="product-card">
-                            <img src="{{ order_item.image }}" alt="{{ order_item.title }}" class="product-image">
-                            <div class="product-info">
-                                <h3 class="product-title">{{ order_item.title }}</h3>
+                {% for order_item_pen in order_items_pen %}
+                <div class="product-card">
+                    <img src="{{ order_item_pen.image }}" alt="{{ order_item_pen.title }}" class="product-image">
+                    <div class="product-info">
+                        <h3 class="product-title">{{ order_item_pen.title }}</h3>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <br>
+            <h2>Past Orders</h2>
+            <div class="products-container">
+                {% for order_item in order_items %}
+                <div class="product-card">
+                    <img src="{{ order_item.image }}" alt="{{ order_item.title }}" class="product-image">
+                    <div class="product-info">
+                        <h3 class="product-title">{{ order_item.title }}</h3>
+                        {% if temp == 0 %}
+                        <form method="POST" action="{{ url_for('user.review') }}">
+                            <input type="hidden" name="product_id" value="{{ order_item.product_id }}">
+                            <input type="submit" value="Review">
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('user.complaint') }}">
+                            <input type="hidden" name="product_id" value="{{ order_item.product_id }}">
+                            <input type="submit" value="Complaint">
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
+        {% if user_type == 'B' %}
+            {% for uid, user_data in grouped_orders.items() %}
+                <div class="user-orders">
+                    <h3 class="user-name">{{ user_data.name }} ({{ user_data.email }})</h3>
+                    {% for order_id, items in user_data.orders.items() %}
+                        <div class="order-card">
+                            <h4>Order ID: {{ order_id }}</h4>
+                            <div class="order-items">
+                                {% for item in items %}
+                                    <div class="product-card">
+                                        <img src="{{ item.image }}" alt="{{ item.title }}" class="product-image">
+                                        <div class="product-info">
+                                            <h5 class="product-title">{{ item.title }}</h5>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
                         </div>
+                        <form method="POST" action="{{ url_for('user.approve_order') }}">
+                            <input type="hidden" name="order_id" value="{{ order_id }}">
+                            <button type="submit">Approve</button>
+                        </form>
                     {% endfor %}
-                {% endif %}
-
-                {% if user_type == 'B' %}
-                    {% for uid, user_data in grouped_orders.items() %}
-                        <div class="user-orders">
-                            <h3 class="user-name">{{ user_data.name }} ({{ user_data.email }})</h3>
-                            {% for order_id, items in user_data.orders.items() %}
-                                <div class="order-card">
-                                    <h4>Order ID: {{ order_id }}</h4>
-                                    <div class="order-items">
-                                        {% for item in items %}
-                                            <div class="product-card">
-                                                <img src="{{ item.image }}" alt="{{ item.title }}" class="product-image">
-                                                <div class="product-info">
-                                                    <h5 class="product-title">{{ item.title }}</h5>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <form method="POST" action="{{ url_for('user.approve_order') }}">
-                                    <input type="hidden" name="order_id" value="{{ order_id }}">
-                                    <button type="submit">Approve</button>
-                                </form>
-                            {% endfor %}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
+                </div>
+            {% endfor %}
+        {% endif %}
         </div>
     </div>
 </body>
@@ -66,45 +81,48 @@
     margin: 0 auto;
     padding: 0 20px;
 }
-
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
 }
-
 .header-links {
     display: flex;
     gap: 20px;
 }
-
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: white;
+    color: #6e31a6;
     font-weight: bold;
     transition: color 0.3s ease;
-    padding-top: 20px;
 }
-
 .link:hover {
-    color: #ab67eb;
+    color: #51048c;
+}
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
 }
 .orders-section {
     background-color: #6e31a6;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     padding: 30px;
+    margin-bottom: 40px;
 }
-
 .orders-section h2 {
     font-size: 28px;
     font-weight: 600;
-    color: #333;
+    color: #fff;
     margin-bottom: 20px;
 }
-
+a:visited {
+    color: white;
+}
 .products-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -161,6 +179,5 @@ header {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
-
 </style>
 {% endblock %}

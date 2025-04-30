@@ -6,82 +6,56 @@
             <div class="header-links">
                 <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
                 <a href="{{ url_for('user.products') }}" class="link">Shop</a>
-                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
             </div>
+            <h1 class="page-title">{{ type }} Cart</h1>
         </header>
 
-    <h1>Your Cart</h1>
-        {% if cart_items %}
-            <div class="products-container">
-                {% for item in cart_items %}
-                    <div class="product-card">
-                        <img src="{{ item.image }}" alt="{{ item.title }}">
-                        <div>
-                            <h3>{{ item.title }}</h3>
-                            <p>Price: ${{ '%.2f'|format(item.price) }}</p>
-                            <p>Quantity: {{ item.quantity }}</p>
-                            <p><strong>Subtotal: ${{ '%.2f'|format(item.subtotal) }}</strong></p>
+        <div class="cart-section">
+            <h2>Your Cart</h2>
+
+            {% if cart_items %}
+                <div class="cart-items-container">
+                    {% for item in cart_items %}
+                        <div class="cart-card">
+                            <img src="{{ item.image }}" alt="{{ item.title }}" class="product-image">
+                            <div class="product-info">
+                                <h3 class="product-title">{{ item.title }}</h3>
+                                <p>Price: ${{ '%.2f'|format(item.price) }}</p>
+                                <p>Quantity: {{ item.quantity }}</p>
+                                <p><strong>Subtotal: ${{ '%.2f'|format(item.subtotal) }}</strong></p>
+                            </div>
+                            <form method="POST" action="{{ url_for('user.delete_item') }}">
+                                <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                                <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                                <button type="submit" class="cart-button">Delete</button>
+                            </form>
                         </div>
-                        <form method="POST" action="{{ url_for('user.delete_item') }}">
-                            <input type="hidden" name="product_id" value="{{ item.product_id }}">
-                            <input type="hidden" name="quantity" value="{{ item.quantity }}">
-                            <button type="submit">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-            </div>
-            <div>
-                <h2>Total: ${{ '%.2f'|format(total) }}</h2>
-            </div>
-            <div>
-                <form method="POST" action="{{ url_for('user.place_order') }}">
-                    <button type="submit">Order</button>
-                </form>
-            </div>
-        {% else %}
-            <p>Your cart is empty!</p>
-        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="cart-summary">
+                    <h2>Total: ${{ '%.2f'|format(total) }}</h2>
+                    <form method="POST" action="{{ url_for('user.place_order') }}">
+                        <button type="submit" class="cart-button">Place Order</button>
+                    </form>
+                </div>
+            {% else %}
+                <p class="empty-cart-message">Your cart is empty!</p>
+            {% endif %}
+        </div>
     </div>
 </body>
 <style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
-}
-.products-container {
-    max-width: 1000px;
-    margin: 80px auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    padding: 0 1rem;
-}
-.product-card {
-    background: linear-gradient(145deg, #51048c, #6e31a6);
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    padding: 1.5rem;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.product-card h3 {
-    margin-bottom: 0.5rem;
-}
-.product-card p {
-    font-size: 0.9rem;
-    margin: 0.25rem 0;
-}
-.product-card .price {
-    font-weight: bold;
-    margin-top: 0.5rem;
-}
-
-.link:hover {
-    color: #ab67eb;
 }
 .header-links {
     display: flex;
@@ -90,15 +64,76 @@ header {
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: white;
+    color: #6e31a6;
     font-weight: bold;
     transition: color 0.3s ease;
-    padding-top: 20px;
 }
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+.link:hover {
+    color: #51048c;
+}
+a:visited {
+    color: white;
+}
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
+}
+.cart-section {
+    background-color: #6e31a6;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin-bottom: 40px;
+}
+.cart-section h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+.cart-items-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.cart-card {
+    background: linear-gradient(145deg, #51048c, #6e31a6);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+}
+.cart-card .product-image {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin: 0 auto 10px auto;
+    border-radius: 8px;
+}
+.cart-button {
+    background-color: #fff;
+    color: #6e31a6;
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    margin-top: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.cart-button:hover {
+    background-color: #e0d1f2;
+}
+.cart-summary {
+    margin-top: 30px;
+    color: #fff;
+    text-align: center;
 }
 </style>
 {% endblock %}
