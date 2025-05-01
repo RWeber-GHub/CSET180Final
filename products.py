@@ -127,22 +127,45 @@ def create_product():
 
 @products_bp.route('/gallery')
 def product_gallery():
+    user_id = session['user_id']
+    user_type = session['user_type']
+
     with engine.connect() as conn:
-        results = conn.execute(text("""
-            SELECT 
-                p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
-                GROUP_CONCAT(DISTINCT i.image) AS images,
-                GROUP_CONCAT(DISTINCT c.color) AS colors,
-                GROUP_CONCAT(DISTINCT s.size) AS sizes
-            FROM product p
-            LEFT JOIN product_images pi ON p.product_id = pi.product_id
-            LEFT JOIN images i ON pi.image_id = i.image_id
-            LEFT JOIN product_colors pc ON p.product_id = pc.product_id
-            LEFT JOIN colors c ON pc.color_id = c.color_id
-            LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
-            LEFT JOIN sizes s ON ps.size_id = s.size_id
-            GROUP BY p.product_id
-        """)).fetchall()
+        if user_type == 'B':  # Vendor
+            query = text("""
+                SELECT 
+                    p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
+                    GROUP_CONCAT(DISTINCT i.image) AS images,
+                    GROUP_CONCAT(DISTINCT c.color) AS colors,
+                    GROUP_CONCAT(DISTINCT s.size) AS sizes
+                FROM product p
+                LEFT JOIN product_images pi ON p.product_id = pi.product_id
+                LEFT JOIN images i ON pi.image_id = i.image_id
+                LEFT JOIN product_colors pc ON p.product_id = pc.product_id
+                LEFT JOIN colors c ON pc.color_id = c.color_id
+                LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+                LEFT JOIN sizes s ON ps.size_id = s.size_id
+                WHERE p.user_id = :user_id
+                GROUP BY p.product_id
+            """)
+            results = conn.execute(query, {'user_id': user_id}).fetchall()
+        else: 
+            query = text("""
+                SELECT 
+                    p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
+                    GROUP_CONCAT(DISTINCT i.image) AS images,
+                    GROUP_CONCAT(DISTINCT c.color) AS colors,
+                    GROUP_CONCAT(DISTINCT s.size) AS sizes
+                FROM product p
+                LEFT JOIN product_images pi ON p.product_id = pi.product_id
+                LEFT JOIN images i ON pi.image_id = i.image_id
+                LEFT JOIN product_colors pc ON p.product_id = pc.product_id
+                LEFT JOIN colors c ON pc.color_id = c.color_id
+                LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+                LEFT JOIN sizes s ON ps.size_id = s.size_id
+                GROUP BY p.product_id
+            """)
+            results = conn.execute(query).fetchall()
 
     products = []
     for row in results:
@@ -159,6 +182,7 @@ def product_gallery():
         })
 
     return render_template('all_products.html', products=products)
+
 
 
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
@@ -231,9 +255,6 @@ def update_variant(variant_id):
 
     flash("Variant updated.")
     return redirect(request.referrer)
-
-
-
 
 
 @products_bp.route('/delete/<int:product_id>', methods=['POST'])

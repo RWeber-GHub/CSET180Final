@@ -7,11 +7,12 @@
             <div class="header-links">
                 <a href="{{ url_for('home.home') }}" class="link">Home</a>
                 <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
-                <a href="{{ url_for('user.products') }}" class="link">Shop</a>
+                <a href="{{ url_for('products.product_gallery') }}" class="link">Shop</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
                 <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
                 {% if user_type in ['B', 'C'] %}
                     <a href="{{ url_for('products.product_gallery') }}" class="link">Products</a>
+                    <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
                     <a href="{{ url_for('user.review') }}" class="link">Reviews</a>
                     <a href="{{ url_for('user.complaint') }}" class="link">Complaints</a>
                 {% endif %}

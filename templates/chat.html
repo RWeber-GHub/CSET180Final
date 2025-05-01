@@ -4,11 +4,9 @@
 <body>
     <div class="container">
         <header>
-            <a href="{{ url_for('user.user') }}">User Dashboard</a>
-            <h1>{{ type }}</h1>
+            <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+            <h1 class="page-title">Chat</h1>
         </header>
-    </div>
-    <div>
         {% if chats %}
             {% for chat in chats %}
                 <div class="chat-card">
@@ -17,7 +15,6 @@
                     <p><strong>{{ chat.email }}</strong></p>
                     <form method="POST" action="{{ url_for('user.view_chat') }}">
                         <input type="hidden" name="user_id" value="{{ chat.user_id }}">
-                        <p><strong>{{ chat.user_id }}</strong></p>
                         <input type="submit" value="Chat">
                     </form>
                 </div>
@@ -25,13 +22,67 @@
             {% endfor %}
         {% endif %}
         {% if chat %}
-       
-        {% endif %}
-    </div>
+        <h3>Send a Message:</h3>
+        <form method="POST" action="{{ url_for('user.msg') }}" enctype="multipart/form-data">
+            <input type="hidden" name="chat_id" value="{{ chat.chat_id }}">
+            <textarea name="text" placeholder="Type message..."></textarea><br>
+            <input type="file" name="image"><br>
+            <input type="submit" value="Send">
+        </form>
+        {% for msg in messages %}
+        <div class="message-wrapper">
+            {% if msg.user_id == session['user_id'] %}
+            <div class="my_message">
+                <p><strong>{{ name[0] }} (You):</strong> {{ msg.text }}</p>
+            
+            {% else %}
+            <div class="other_message">
+                <p><strong>{{ other_name[0] }}:</strong> {{ msg.text }}</p>
+            {% endif %}
+            {% if msg.image %}
+            <img src="{{ url_for('static', filename=msg.image.replace('static\\', '').replace('\\', '/')) }}">
+            {% endif %}
+            </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
 </body>
 <style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+.link {
+    text-decoration: none;
+    font-size: 16px;
+    color: #6e31a6;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+.link:hover {
+    color: #51048c;
+}
 a:visited{
     color: white;
+}
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
 }
 .chat-card {
     display: grid;
@@ -49,9 +100,32 @@ a:visited{
     text-align: center;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+.message-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    margin-bottom: 1rem;
+    clear: both;
+    width: 900px;
+    margin: auto;
+    padding: 10px;
+}
+.my_message {
+    margin-left: auto;
+    background-color: #7bb9e3;
+    border-radius: 12px;
+    padding: 10px;
+    max-width: 60%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.other_message {
+    margin-right: auto;
+    background-color: #595f63;
+    color: white;
+    border-radius: 12px;
+    padding: 10px;
+    max-width: 60%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 </style>
 {% endblock %}

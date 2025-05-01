@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+ {% extends "base.html" %}
 
 {% block content %}
 <link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
@@ -8,6 +8,7 @@
             <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
             <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
             <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+            <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
         </div>
     </header>
     <h1>Marketplace</h1>
@@ -71,6 +72,7 @@
             <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
                 <button>Edit Product</button>
             </a>
+            
         </div>
         {% endfor %}
     </div>
@@ -103,7 +105,7 @@ header {
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: white;
+    color: #6a0dad;
     font-weight: bold;
     transition: color 0.3s ease;
     padding-top: 20px;

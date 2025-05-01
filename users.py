@@ -3,6 +3,8 @@ from sqlalchemy import create_engine, text
 import bcrypt
 from db import engine, conn
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
 
 user_bp = Blueprint("user", __name__, static_folder="static", template_folder="templates")
 
@@ -24,40 +26,101 @@ def chat():
         chats = conn.execute(text("""
             select name, email, user_id from user where user_type = 'B'
         """)).fetchall()
-    return render_template('chat.html', chats=chats)
+        type = 'Vendor List'
+    elif user_type == 'B':
+        chats = conn.execute(text("""
+            select name, email, user_id from user where user_type = 'A'
+        """)).fetchall()
+        type = 'User List'
+    return render_template('chat.html', chats=chats, type=type)
 
-@user_bp.route('/view_chat', methods=['GET', 'POST'])
+@user_bp.route('/view_chat', methods=['POST', 'GET'])
 def view_chat():
-    user_id = session['user_id']                                                                                                                                    
-    vendor_id = request.form['user_id']
-    chat = conn.execute(text("""
-        select chat_id from chat where user_id = user_id and admin_id = :vendor_id
+    other_user_id = request.form.get('user_id')
+    if other_user_id == None:
+        other_user_id = session.get('other_user_id')
+        session['other_user_id'] = other_user_id
+    other_user_id = session.get('other_user_id')
+    user_id = session['user_id']
+    name = conn.execute(text("""
+        select name from user
+        where user_id = :user_id
     """), {
-        'user_id': user_id,
-        'vendor_id': vendor_id
-    }).fetchall()
-    if not chat:
+            'user_id': user_id,
+    }).fetchone()
+    other_name = conn.execute(text("""
+        select name from user
+        where user_id = :user_id 
+    """), {
+            'user_id': other_user_id,
+    }).fetchone() 
+    chat = conn.execute(text("""
+            select chat_id from chat
+            where (user_id = :user_id and admin_id = :other_user_id)
+            or (user_id = :other_user_id and admin_id = :user_id)
+    """), {
+            'user_id': user_id,
+            'other_user_id': other_user_id
+    }).fetchone()
+    if chat == None:
         conn.execute(text("""
-            insert into chat (user_id, admin_id)
-            values 
-            (:user_id, :vendor_id)
+                insert into chat (user_id, admin_id)
+                values (:user_id, :admin_id)
         """), {
-          'user_id': user_id,
-          'vendor_id': vendor_id
+            'user_id': user_id,
+            'admin_id': other_user_id
         })
         conn.commit()
-    my_msgs = conn.execute(text("""
-        select text, image, msg_date from msg where user_id = user_id
+        chat = conn.execute(text("""
+            select chat_id from chat
+            where (user_id = :user_id and admin_id = :other_user_id)
+            or (user_id = :other_user_id and admin_id = :user_id)
+        """), {
+            'user_id': user_id,
+            'other_user_id': other_user_id
+        }).fetchone()
+    chat_id = chat[0]
+    messages = conn.execute(text("""
+        select user_id, text, image, msg_date
+        from msg
+        where chat_id = :chat_id
+        order by msg_date asc
     """), {
-        'user_id': user_id,
+        'chat_id': chat_id
     }).fetchall()
-    vendor_msgs = conn.execute(text("""
-        select text, image, msg_date from msg where user_id = user_id
-    """), {
-        'user_id': vendor_id,
-    }).fetchall()
+    return render_template('chat.html', messages=messages, chat=chat, name=name, other_name=other_name)
 
-    return render_template('chat.html', my_msgs=my_msgs, vendor_msgs=vendor_msgs, chat=chat)
+@user_bp.route('/msg', methods=['GET', 'POST'])
+def msg():
+    chat_id = request.form['chat_id']
+    user_id = session['user_id']
+    msg = request.form.get('text')
+    image = request.files.get('image')
+
+    print(f'*&*&{image}*&*&')
+
+    UPLOAD_FOLDER = os.path.join('static', 'uploads')
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    if image and image.filename:
+        filename = secure_filename(image.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        image.save(file_path)
+        image_path = os.path.join('static', 'uploads', filename)
+    else:
+        image_path = None
+    
+    conn.execute(text("""
+        insert into msg (chat_id, user_id, text, image)
+        values (:chat_id, :user_id, :text, :image)
+    """), {
+        'chat_id': chat_id,
+        'user_id': user_id,
+        'text': msg,
+        'image': image_path
+    })
+    conn.commit()
+    return redirect(url_for('user.view_chat'))
 
 @user_bp.route('/products', methods=['GET', 'POST'])
 def products():
