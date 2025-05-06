@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
+<body>
+    <div class="container">
+        <header>
+            <div class="header-links">
+                <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+            </div>
+            <h1 class="page-title">Address</h1>
+        </header>
+        <div class="details-section">
+            <div class="products-container">
+                <div class="product-card">
+                    <form method="POST" action="{{ url_for('user.assign_address') }}">
+                        <input type="text" name="receiver" required placeholder="Receiver">
+                        <input type="text" name="phonenumber" required placeholder="Phone-Number">
+                        <input type="text" name="street_number" required placeholder="Street Number">
+                        <input type="text" name="street_name" required placeholder="Street Name">
+                        <input type="text" name="unit_number" required placeholder="Unit Number">
+                        <input type="text" name="unit_name" placeholder="Unit Name">
+                        <input type="text" name="city" required placeholder="City">
+                        <input type="text" name="state" required placeholder="State">
+                        <input type="text" name="zipcode" required placeholder="Zipcode">
+                        <!-- address types -->
+                        <input type="submit" value="Submit">
+                    </form>
+                </div>
+                {% for address in addresses %}
+                <div class="product-card">
+                    <h1>{{ address.receiver }}</h1>
+                    <p>{{ address.contact_num }}</p>
+                    <p>{{ address.street_num }}</p>
+                    <p>{{ address.street_name }}</p>
+                    <p>{{ address.unit_num }}</p>
+                    {% if address.unit_name %}
+                        <p>{{ address.unit_name }}</p>
+                    {% endif %}
+                    <p>{{ address.city }}</p>
+                    <p>{{ address.state }}</p>
+                    <p>{{ address.zipcode }}</p>
+                    <p>{{ address.default_address }}</p>
+                    <form method="POST" action="{{ url_for('user.default_address') }}">
+                        <input type="hidden" name="address_id" value="{{ address.address_id }}">
+                        <input type="submit" value="Make Default">
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+.header-links {
+    display: flex;
+    gap: 20px;
+}
+.link {
+    text-decoration: none;
+    font-size: 16px;
+    color: #6e31a6;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+.link:hover {
+    color: #51048c;
+}
+a:visited {
+    color: white;
+}
+.page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #6e31a6;
+    margin-bottom: 10px;
+}
+.details-section {
+    background-color: #6e31a6;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin-bottom: 40px;
+}
+.details-section h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+.products-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+.product-card {
+    background: #51048c;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+}
+.product-image {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+.product-info {
+    color: #fff;
+}
+.product-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+</style>
+{% endblock %}

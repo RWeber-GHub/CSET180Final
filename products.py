@@ -131,7 +131,7 @@ def product_gallery():
     user_type = session['user_type']
 
     with engine.connect() as conn:
-        if user_type == 'B':  # Vendor
+        if user_type == 'B':
             query = text("""
                 SELECT 
                     p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
@@ -149,7 +149,7 @@ def product_gallery():
                 GROUP BY p.product_id
             """)
             results = conn.execute(query, {'user_id': user_id}).fetchall()
-        else: 
+        else:
             query = text("""
                 SELECT 
                     p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
@@ -167,10 +167,31 @@ def product_gallery():
             """)
             results = conn.execute(query).fetchall()
 
+        # Get variants
+        variant_query = text("""
+            SELECT pv.product_id, c.color, s.size, pv.variant_stock, pv.price
+            FROM product_variants pv
+            JOIN colors c ON pv.color_id = c.color_id
+            JOIN sizes s ON pv.size_id = s.size_id
+        """)
+        variant_results = conn.execute(variant_query).fetchall()
+
+    product_variants_map = {}
+    for row in variant_results:
+        pid = row.product_id
+        variant = {
+            'color': row.color,
+            'size': row.size,
+            'stock': row.variant_stock,
+            'price': float(row.price)
+        }
+        product_variants_map.setdefault(pid, []).append(variant)
+
     products = []
     for row in results:
+        product_id = row.product_id
         products.append({
-            'product_id': row.product_id,
+            'product_id': product_id,
             'title': row.title,
             'description': row.description,
             'price': row.price,
@@ -178,11 +199,11 @@ def product_gallery():
             'warranty': row.warranty,
             'images': row.images.split(',') if row.images else [],
             'colors': row.colors.split(',') if row.colors else [],
-            'sizes': row.sizes.split(',') if row.sizes else []
+            'sizes': row.sizes.split(',') if row.sizes else [],
+            'variants': product_variants_map.get(product_id, [])
         })
 
     return render_template('all_products.html', products=products)
-
 
 
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
@@ -205,7 +226,6 @@ def edit_product(product_id):
 
             flash('Product updated successfully.')
             return redirect(url_for('products.product_gallery'))
-
 
         product = conn.execute(text("""
             SELECT * FROM product WHERE product_id = :pid

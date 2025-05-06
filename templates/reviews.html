@@ -5,40 +5,59 @@
     <div class="container">
         <header>
             <div class="header-links">
-                <a href="{{ url_for('home.home') }}" class="link">Home</a>
-                <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
-                <a href="{{ url_for('user.products') }}" class="link">Shop</a>
-                <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
-                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
-            </div>
+                <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
         </header>
         {% if user_type == 'A' %}
+            {% if products %}
+                <div class="products-container">
+                    <div class="product-card">
+                    {% for product in products%}
+                        <div class="product-info">
+                            <h3>{{ product.title }}</h3>
+                            <img src="{{ url_for('static', filename=product.image.replace('static\\', '').replace('\\', '/')) }}">
+                            <p>{{ product.description }}</p>
+                            <p>${{ product.price}}</p>
+                        </div>
+                        <form method="POST" action="{{ url_for('user.post_review') }}" enctype="multipart/form-data">
+                            <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                            <textarea name="description" placeholder="Please write your review here!"></textarea>
+                            <input type="range" min="1" max="5" step="1" list="list" name="rating">
+                            <datalist id="list">
+                                <option value="1" label="*"></option>
+                                <option value="2" label="**"></option>
+                                <option value="3" label="***"></option>
+                                <option value="4" label="****"></option>
+                                <option value="5" label="*****"></option>
+                            </datalist>
+                            <input type="file" name="image" accept="image/*">
+                            <input type="submit" value="Post">
+                        </form>
+                    {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            {% if reviews %}
             <div class="products-container">
                 <div class="product-card">
-                {% for product in products%}
+                {% for review in reviews %}
                     <div class="product-info">
-                        <h3>{{ product.title }}</h3>
-                        <img src="{{  product.image  }}" alt="">
-                        <p>{{ product.description }}</p>
-                        <p>${{ product.price}}</p>
+                        <h1>Review</h1>
+                        <h3>{{ review.description }}</h3>
+                        <p>{{ review.rating }} Stars</p>
+                        <p>{{ review.review_date}}</p>
                     </div>
-                <form method="POST" action="{{ url_for('user.post_review') }}" enctype="multipart/form-data">
-                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                    <textarea name="description" placeholder="Please write your review here!"></textarea>
-                    <input type="range" min="1" max="5" step="1" list="list" name="rating">
-                    <datalist id="list">
-                        <option value="1" label="*"></option>
-                        <option value="2" label="**"></option>
-                        <option value="3" label="***"></option>
-                        <option value="4" label="****"></option>
-                        <option value="5" label="*****"></option>
-                    </datalist>
-                    <input type="file" name="image" accept="image/*">
-                    <input type="submit" value="Post">
-                </form>
+                    <div class="product-info">
+                        <h1>Product</h1>
+                        {% for i in info %}
+                            <h3>{{ i.title }}</h3>
+                            <img src="{{  i.image  }}" alt="">
+                            <p>{{ i.price}}</p>
+                        {% endfor %}
+                    </div>
                 {% endfor %}
                 </div>
             </div>
+            {% endif %}
         {% endif %}
         {% if user_type == 'B' %}
         <div class="products-container">

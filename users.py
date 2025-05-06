@@ -19,6 +19,98 @@ def user():
     }).fetchone()
     return render_template('userview.html', user=user, user_type=user_type)
 
+@user_bp.route('/address')
+def address():
+    user_id = session['user_id']
+    addresses = []
+    try:
+        address_ids = conn.execute(text("""
+        select address_id, default_address from user_address where user_id = :user_id
+        """), {
+        'user_id': user_id
+        }).fetchall()
+        print(f'cccc1111111111111111cccccccc{address_ids}cccccc44444444cccccc')
+        for address_id in address_ids:
+            print(f'cccccccccccc{address_id}cccccc44444444cccccc')
+            address = conn.execute(text("""
+                select * from address where address_id = :address_id
+            """), {
+                'address_id': address_id[0]
+            }).fetchone()
+            addresses.append({
+                'address_id': address[0],
+                'receiver': address[1],
+                'contact_num': address[2],
+                'street_num': address[3],
+                'street_name': address[4],
+                'unit_num': address[5],
+                'unit_name': address[6],
+                'city': address[7],
+                'state': address[8],
+                'zipcode': address[9],
+                'default_address': address_id[1]
+            })
+            
+    except Exception as e:
+        return render_template('address.html', addresses=addresses, error=str(e))
+    return render_template('address.html', addresses=addresses)
+
+
+
+@user_bp.route('/assign_address', methods=['POST', 'GET'])
+def assign_address():
+    user_id = session['user_id']
+    receiver = request.form.get('receiver')
+    phonenumber = request.form.get('phonenumber')
+    street_number = request.form.get('street_number')
+    street_name = request.form.get('street_name')
+    unit_number = request.form.get('unit_number')
+    unit_name = request.form.get('unit_name')
+    city = request.form.get('city')
+    state = request.form.get('state')
+    zipcode = request.form.get('zipcode')
+    conn.execute(text("""
+        insert into address (receiver, contact_num, street_num, street_name, unit_num, unit_name, city, state, zipcode)
+        values (:receiver, :contact_num, :street_num, :street_name, :unit_num, :unit_name, :city, :state, :zipcode)
+    """), {
+        'receiver': receiver,
+        'contact_num': phonenumber,
+        'street_num': street_number,
+        'street_name': street_name,
+        'unit_num': unit_number,
+        'unit_name': unit_name, 
+        'city': city,
+        'state': state,
+        'zipcode': zipcode
+    })
+    conn.commit()
+    address_id = conn.execute(text("""
+        select address_id from address where street_num = :street_num
+    """), {
+        'street_num': street_number
+    }).fetchone()
+    conn.execute(text("""
+        insert into user_address (address_id, user_id)
+        values (:address_id, :user_id)
+    """),{
+        'address_id': address_id[0],
+        'user_id': user_id
+    })
+    conn.commit()
+    return render_template('address.html')
+
+@user_bp.route('/default_address', methods=['POST', 'GET'])
+def default_address():
+    user_id = session['user_id']
+    address_id = request.form.get('address_id')
+    conn.execute(text("""
+    update user_address set default_address = 1 where address_id = :address_id
+    """), {
+    'address_id': address_id
+    })
+    conn.commit()
+    return render_template('address.html')
+
 @user_bp.route('/chat')
 def chat():
     user_type = session['user_type']
@@ -36,11 +128,7 @@ def chat():
 
 @user_bp.route('/view_chat', methods=['POST', 'GET'])
 def view_chat():
-    other_user_id = request.form.get('user_id')
-    if other_user_id == None:
-        other_user_id = session.get('other_user_id')
-        session['other_user_id'] = other_user_id
-    other_user_id = session.get('other_user_id')
+    other_user_id = int(request.form.get('user_id'))
     user_id = session['user_id']
     name = conn.execute(text("""
         select name from user
@@ -65,10 +153,10 @@ def view_chat():
     if chat == None:
         conn.execute(text("""
                 insert into chat (user_id, admin_id)
-                values (:user_id, :admin_id)
+                values (:user_id, :other_user_id)
         """), {
             'user_id': user_id,
-            'admin_id': other_user_id
+            'other_user_id': other_user_id
         })
         conn.commit()
         chat = conn.execute(text("""
@@ -122,32 +210,66 @@ def msg():
     conn.commit()
     return redirect(url_for('user.view_chat'))
 
-@user_bp.route('/products', methods=['GET', 'POST'])
+@user_bp.route('/products', methods=['POST'])
 def products():
     user_id = session['user_id']
-    if request.method == 'POST':
-        product_id = request.form['product_id']
-        quantity = int(request.form['quantity'])
-        cart = conn.execute(text("""
-            select cart_id from cart where user_id = :user_id
-        """), {
-            'user_id': user_id
-        }).fetchone()
-        cart_id = cart.cart_id
+    product_id = request.form['product_id']
+    color_hex = request.form['color']
+    size_label = request.form['size']
+    quantity = int(request.form['quantity'])
+
+    cart = conn.execute(text("SELECT cart_id FROM cart WHERE user_id = :user_id"), {
+        'user_id': user_id
+    }).fetchone()
+    cart_id = cart.cart_id
+
+    color = conn.execute(text("SELECT color_id FROM colors WHERE color = :color"), {
+        'color': color_hex
+    }).fetchone()
+    size = conn.execute(text("SELECT size_id FROM sizes WHERE size = :size"), {
+        'size': size_label
+    }).fetchone()
+
+    if not color or not size:
+        flash("Invalid color or size selected.")
+        return redirect(url_for('user.cart'))
+
+    color_id = color.color_id
+    size_id = size.size_id
+
+    variant = conn.execute(text("""
+        SELECT variant_stock FROM product_variants
+        WHERE product_id = :product_id AND color_id = :color_id AND size_id = :size_id
+    """), {
+        'product_id': product_id,
+        'color_id': color_id,
+        'size_id': size_id
+    }).fetchone()
+
+    if not variant or variant.variant_stock < quantity:
+        flash("Selected variant is out of stock or insufficient quantity.")
+        return redirect(url_for('user.cart'))
+
+    try:
         conn.execute(text("""
-            insert into cart_items (cart_id, product_id, color_id, size_id, quantity)
-            values 
-            (:cart_id, :product_id, :color_id, :size_id, :quantity)
-            on duplicate key update quantity = quantity + :quantity
+            INSERT INTO cart_items (cart_id, product_id, color_id, size_id, quantity)
+            VALUES (:cart_id, :product_id, :color_id, :size_id, :quantity)
+            ON DUPLICATE KEY UPDATE quantity = quantity + :quantity
         """), {
             'cart_id': cart_id,
             'product_id': product_id,
-            'color_id': 1,
-            'size_id': 1,
+            'color_id': color_id,
+            'size_id': size_id,
             'quantity': quantity
         })
         conn.commit()
-    return redirect(url_for('products.product_gallery'))
+        flash("Item added to cart!")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error adding to cart. {e}")
+
+    return redirect(url_for('user.cart'))
+
 
 @user_bp.route('/cart')
 def cart():
@@ -158,29 +280,38 @@ def cart():
         'user_id': user_id
     }).fetchone()
     cart_id = cart.cart_id
+    
     items = conn.execute(text("""
-        select p.product_id, p.title, p.price, i.image, ci.quantity
-        from cart_items ci
-        join product p on ci.product_id = p.product_id
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        where ci.cart_id = :cart_id
-    """), {
-        'cart_id': cart_id
-    }).fetchall()
+    SELECT 
+        p.product_id, p.title, p.price, i.image, ci.quantity,
+        c.color, s.size
+    FROM cart_items ci
+    JOIN product p ON ci.product_id = p.product_id
+    LEFT JOIN product_images pi ON p.product_id = pi.product_id
+    LEFT JOIN images i ON pi.image_id = i.image_id
+    LEFT JOIN colors c ON ci.color_id = c.color_id
+    LEFT JOIN sizes s ON ci.size_id = s.size_id
+    WHERE ci.cart_id = :cart_id
+"""), {
+    'cart_id': cart_id
+}).fetchall()
+
     cart_items = []
     total = 0
     for item in items:
         subtotal = item.price * item.quantity
         total += subtotal
         cart_items.append({
-            'product_id': item.product_id,
-            'title': item.title,
-            'price': item.price,
-            'image': item.image,
-            'quantity': item.quantity,
-            'subtotal': subtotal
-        })
+        'product_id': item.product_id,
+        'title': item.title,
+        'price': item.price,
+        'image': item.image,
+        'quantity': item.quantity,
+        'color': item.color,
+        'size': item.size,
+        'subtotal': subtotal
+    })
+
     return render_template('cart.html', cart_items=cart_items, total=total)
 
 @user_bp.route('/delete', methods=['GET', 'POST'])
@@ -303,7 +434,6 @@ def view_orders():
                     'image': product.image,
                     'reviewed': temp
                 })
-        print(f'***{order_items}***')
         for order_row_pen in order_ids_pen:
             order_id = order_row_pen[0]
             items = conn.execute(text("""
@@ -356,7 +486,9 @@ def view_orders():
                 left join product_images pi on p.product_id = pi.product_id
                 left join images i on pi.image_id = i.image_id
                 where op.order_id = :order_id
-            """), {'order_id': user_order.order_id}).fetchall()
+            """), {
+                'order_id': user_order.order_id
+            }).fetchall()
 
             product_list = []
             for product in products:
@@ -375,6 +507,18 @@ def approve_order():
 
     conn.execute(text("""
         update orders set status = "confirmed" where order_id = :order_id
+    """), {
+        'order_id': order_id
+    })
+    conn.commit()
+    return render_template('orders.html')
+
+@user_bp.route('/reject_order', methods=['GET', 'POST'])
+def reject_order():
+    order_id = request.form['order_id']
+
+    conn.execute(text("""
+        update orders set status = "rejected" where order_id = :order_id
     """), {
         'order_id': order_id
     })
@@ -407,6 +551,34 @@ def review():
             'product_id': product_id
         }).fetchall()
         return redirect(url_for('user.user'))
+    return render_template('reviews.html', products=products, user_type=user_type)
+
+@user_bp.route('/view_reviews', methods=['GET', 'POST'])
+def view_reviews():
+    user_type = session['user_type']
+    user_id = session['user_id']
+    if user_type == 'A':
+        reviews = conn.execute(text("""
+            select * from reviews where user_id = :user_id
+        """), {
+            'user_id': user_id
+        }).fetchall()
+        product_id = conn.execute(text("""
+        select product_id from reviews where user_id = :user_id
+        """
+        ), {
+          'user_id': user_id
+        }).fetchone()
+
+        info = conn.execute(text("""
+            select p.*, i.image from product p
+            join product_images pi on p.product_id = pi.product_id
+            join images i on pi.image_id = i.image_id
+            where p.product_id = :product_id
+        """), {
+          'product_id': product_id[0]
+        }).fetchall()
+        return render_template('reviews.html', reviews=reviews, user_type=user_type, info=info)
     if user_type == 'B':
         products = conn.execute(text("""
             select p.title, p.description, p.price, p.stock,

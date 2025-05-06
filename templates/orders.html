@@ -69,6 +69,10 @@
                                 <input type="hidden" name="order_id" value="{{ order_id }}">
                                 <button type="submit">Approve</button>
                             </form>
+                            <form method="POST" action="{{ url_for('user.reject_order') }}">
+                                <input type="hidden" name="order_id" value="{{ order_id }}">
+                                <button type="submit">Reject</button>
+                            </form>
                         {% endif %}
                     {% endfor %}
                 </div>
