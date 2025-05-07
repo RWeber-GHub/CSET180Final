@@ -1,4 +1,4 @@
- {% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
@@ -33,46 +33,48 @@
 
             <h3>{{ product.title }}</h3>
             <p>{{ product.description }}</p>
-            <p><strong>Price:</strong> ${{ "%.2f"|format(product.price) }}</p>
-            <p><strong>Stock:</strong> {{ product.stock }}</p>
+            <p><strong>Price:</strong> $<span id="price-{{ product.product_id }}">{{ "%.2f"|format(product.price) }}</span></p>
             <p><strong>Warranty:</strong> {{ product.warranty }}</p>
 
-            <form method="POST" action="{{ url_for('user.products') }}">
+            <form method="POST" action="{{ url_for('user.products') }}" onsubmit="return validateVariant({{ product.product_id }})">
                 <input type="hidden" name="product_id" value="{{ product.product_id }}">
-            
+                <input type="hidden" name="color" class="color-input">
+
                 {% if product.colors %}
                 <div class="product-colors">
                     <strong>Colors:</strong>
                     <div class="color-options">
                         {% for color in product.colors %}
-                        <div class="color-circle" title="{{ color }}" data-color="{{ color }}"
+                        <div class="color-circle" title="{{ color }}" data-color="{{ color }}" data-product-id="{{ product.product_id }}"
                             style="background-color: {{ color }};">
                         </div>
                         {% endfor %}
                     </div>
-                    <input type="hidden" name="color" class="color-input">
                 </div>
                 {% endif %}
-            
+
                 {% if product.sizes %}
                 <div class="product-sizes">
                     <strong>Sizes:</strong>
-                    <select name="size">
+                    <select name="size" class="size-select" data-product-id="{{ product.product_id }}">
                         {% for size in product.sizes %}
                         <option value="{{ size }}">{{ size }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 {% endif %}
-            
+
                 <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
-                <input type="submit" value="Add to Cart">
+                <input type="submit" value="Add to Cart" class="submit-btn">
             </form>
 
             <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
                 <button>Edit Product</button>
             </a>
-            
+
+            <script>
+            window["variants_{{ product.product_id }}"] = {{ product.variants | tojson }};
+            </script>
         </div>
         {% endfor %}
     </div>
@@ -201,6 +203,49 @@ input[type="submit"]:hover, button:hover {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function updateSizeOptions(productId, selectedColor) {
+        const variants = window["variants_" + productId];
+        const sizeSelect = document.querySelector(`.size-select[data-product-id="${productId}"]`);
+
+        Array.from(sizeSelect.options).forEach(option => {
+            const valid = variants.some(v => v.color === selectedColor && v.size === option.value);
+            option.disabled = !valid;
+        });
+    }
+
+    function getSelectedColor(productId) {
+        const circle = document.querySelector(`.color-circle.selected[data-product-id="${productId}"]`);
+        return circle ? circle.dataset.color : null;
+    }
+
+    window.validateVariant = function(productId) {
+        const color = getSelectedColor(productId);
+        const size = document.querySelector(`.size-select[data-product-id="${productId}"]`).value;
+        const variants = window["variants_" + productId];
+
+        const valid = variants.some(v => v.color === color && v.size === size);
+        if (!valid) {
+            alert("Invalid color/size combination.");
+            return false;
+        }
+        return true;
+    };
+
+    document.querySelectorAll('.color-circle').forEach(circle => {
+        circle.addEventListener('click', function () {
+            const color = this.dataset.color;
+            const productId = this.dataset.productId;
+
+            document.querySelectorAll(`.color-circle[data-product-id="${productId}"]`).forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+
+            const colorInput = document.querySelector(`input.color-input[name="color"]`);
+            colorInput.value = color;
+
+            updateSizeOptions(productId, color);
+        });
+    });
+
     document.querySelectorAll('.next-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const productId = btn.dataset.productId;
@@ -212,35 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
             img.src = `/static/${images[nextIndex]}`;
         });
     });
-
-    document.querySelectorAll('.product-colors').forEach(section => {
-        const input = section.querySelector('.color-input');
-        section.querySelectorAll('.color-circle').forEach(circle => {
-            circle.addEventListener('click', () => {
-                section.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
-                circle.classList.add('selected');
-                input.value = circle.dataset.color;
-            });
-        });
-    });
 });
 </script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.color-circle').forEach(function (circle) {
-            circle.addEventListener('click', function () {
-                const color = this.dataset.color;
-                this.closest('form').querySelector('.color-input').value = color;
-                document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-            });
-        });
-    });
-    </script>
-<!-- Had to look up a solution for this, apparently having an input type = hidden breaks something when you have it submitting something in a form, and this is a workaround. -->
-    <style>
-    .color-circle.selected {
-        outline: 2px solid black;
-    }
-    </style>
+
 {% endblock %}

@@ -247,7 +247,7 @@ def products():
     }).fetchone()
 
     if not variant or variant.variant_stock < quantity:
-        flash("Selected variant is out of stock or insufficient quantity.")
+        flash("Selected variant is out of stock or does not exist.")
         return redirect(url_for('user.cart'))
 
     try:
@@ -269,6 +269,7 @@ def products():
         flash(f"Error adding to cart. {e}")
 
     return redirect(url_for('user.cart'))
+
 
 
 @user_bp.route('/cart')

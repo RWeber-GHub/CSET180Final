@@ -130,6 +130,7 @@ def product_gallery():
     user_id = session['user_id']
     user_type = session['user_type']
 
+
     with engine.connect() as conn:
         if user_type == 'B':
             query = text("""
