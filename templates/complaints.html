@@ -7,7 +7,7 @@
             <div class="header-links">
                 <a href="{{ url_for('home.home') }}" class="link">Home</a>
                 <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
-                <a href="{{ url_for('user.products') }}" class="link">Shop</a>
+                <a href="{{ url_for('user.view_products') }}" class="link">Shop</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
                 <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
             </div>
@@ -37,47 +37,47 @@
                     {% if complaints %}
                         {% for complaint in complaints%}
                             <label class="radio">
-                                {% if complaint.complaint_type == 'A' %}
-                                    <input type="radio" name="complaint" value="A" checked>
+                                {% if complaint.complaint_type == 'return' %}
+                                    <input type="radio" name="complaint" value="return" checked>
                                 {% else %}
-                                    <input type="radio" name="complaint" value="A">
+                                    <input type="radio" name="complaint" value="return">
                                 {% endif %}
                                 <span class="mark"></span>
                                 Return
                             </label>
                             <label class="radio">
-                                {% if complaint.complaint_type == 'B' %}
-                                    <input type="radio" name="complaint" value="B" checked>
+                                {% if complaint.complaint_type == 'refund' %}
+                                    <input type="radio" name="complaint" value="refund" checked>
                                 {% else %}
-                                    <input type="radio" name="complaint" value="B">
+                                    <input type="radio" name="complaint" value="refund">
                                 {% endif %}
                                 <span class="mark"></span>
                                 Refund
                             </label>
                             <label class="radio">
-                                {% if complaint.complaint_type == 'C' %}
-                                    <input type="radio" name="complaint" value="C" checked>
+                                {% if complaint.complaint_type == 'warranty' %}
+                                    <input type="radio" name="complaint" value="warranty" checked>
                                 {% else %}
-                                    <input type="radio" name="complaint" value="C">
+                                    <input type="radio" name="complaint" value="warranty">
                                 {% endif %}
                                 <span class="mark"></span>
-                                Warrenty
+                                Warranty
                             </label>
                         {% endfor %}
                         {% endif %}
                         {% if not complaints %}
                             <label class="radio">
-                                <input type="radio" name="complaint" value="A">
+                                <input type="radio" name="complaint" value="return">
                                 <span class="mark"></span>
                                 Return
                             </label>
                             <label class="radio">
-                                <input type="radio" name="complaint" value="B">
+                                <input type="radio" name="complaint" value="refund">
                                 <span class="mark"></span>
                                 Refund
                             </label>
                             <label class="radio">
-                                <input type="radio" name="complaint" value="C">
+                                <input type="radio" name="complaint" value="warranty">
                                 <span class="mark"></span>
                                 Warrenty
                             </label>
@@ -219,10 +219,6 @@ a:visited {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 100%;
     height: 100%;
-}
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
 }
 .product-image {
     width: 100px;

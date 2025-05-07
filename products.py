@@ -204,7 +204,7 @@ def product_gallery():
             'variants': product_variants_map.get(product_id, [])
         })
 
-    return render_template('all_products.html', products=products)
+    return render_template('all_products.html', products=products, user_type=user_type)
 
 
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])

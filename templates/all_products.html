@@ -12,6 +12,26 @@
         </div>
     </header>
     <h1>Marketplace</h1>
+
+    <form method="GET" action="{{ url_for('user.view_products') }}" class="search-sort-form" style="margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+        <input type="text" name="query" placeholder="Search products..." value="{{ request.args.get('query', '') }}" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc; flex-grow: 1; min-width: 200px;">
+    
+        <select name="size" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc;">
+            <option value="">All Sizes</option>
+            {% for size in all_sizes %}
+            <option value="{{ size }}" {% if request.args.get('size') == size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+        </select>
+    
+        <select name="in_stock" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc;">
+            <option value="">Stock Status</option>
+            <option value="1" {% if request.args.get('in_stock') == '1' %}selected{% endif %}>In Stock Only</option>
+        </select>
+    
+        <input type="submit" value="Apply" class="submit-btn">
+    </form>
+    
+
     <div class="product-gallery">
         {% for product in products %}
         <div class="product-card">
@@ -36,7 +56,7 @@
             <p><strong>Price:</strong> $<span id="price-{{ product.product_id }}">{{ "%.2f"|format(product.price) }}</span></p>
             <p><strong>Warranty:</strong> {{ product.warranty }}</p>
 
-            <form method="POST" action="{{ url_for('user.products') }}" onsubmit="return validateVariant({{ product.product_id }})">
+            <form method="POST" action="{{ url_for('user.add_to_cart') }}"onsubmit="return validateVariant({{ product.product_id }})">
                 <input type="hidden" name="product_id" value="{{ product.product_id }}">
                 <input type="hidden" name="color" class="color-input">
 
@@ -64,7 +84,7 @@
                 </div>
                 {% endif %}
 
-                <input type="number" name="quantity" min="1" max="{{ product.stock }}" required>
+                <input type="number" name="quantity" min="1" max="{{ product.stock }}" required value="1">
                 <input type="submit" value="Add to Cart" class="submit-btn">
             </form>
 
@@ -73,7 +93,7 @@
             </a>
 
             <script>
-            window["variants_{{ product.product_id }}"] = {{ product.variants | tojson }};
+            window["variants_{{ product.product_id }}"] = {{ product.variants}};
             </script>
         </div>
         {% endfor %}

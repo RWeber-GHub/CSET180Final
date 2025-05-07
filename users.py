@@ -29,9 +29,7 @@ def address():
         """), {
         'user_id': user_id
         }).fetchall()
-        print(f'cccc1111111111111111cccccccc{address_ids}cccccc44444444cccccc')
         for address_id in address_ids:
-            print(f'cccccccccccc{address_id}cccccc44444444cccccc')
             address = conn.execute(text("""
                 select * from address where address_id = :address_id
             """), {
@@ -48,7 +46,7 @@ def address():
                 'city': address[7],
                 'state': address[8],
                 'zipcode': address[9],
-                'default_address': address_id[1]
+                'default_address': int.from_bytes(address_id[1], byteorder='little')
             })
             
     except Exception as e:
@@ -90,26 +88,32 @@ def assign_address():
         'street_num': street_number
     }).fetchone()
     conn.execute(text("""
-        insert into user_address (address_id, user_id)
-        values (:address_id, :user_id)
+        insert into user_address (address_id, user_id, default_address)
+        values (:address_id, :user_id, :default_address)
     """),{
         'address_id': address_id[0],
-        'user_id': user_id
+        'user_id': user_id,
+        'default_address': 0
     })
     conn.commit()
-    return render_template('address.html')
+    return redirect(url_for('user.address'))
 
 @user_bp.route('/default_address', methods=['POST', 'GET'])
 def default_address():
     user_id = session['user_id']
     address_id = request.form.get('address_id')
+
     conn.execute(text("""
-    update user_address set default_address = 1 where address_id = :address_id
+      update user_address set default_address = 0 where default_address = 1
+    """))
+    conn.commit()
+    conn.execute(text("""
+        update user_address set default_address = 1 where address_id = :address_id
     """), {
-    'address_id': address_id
+        'address_id': address_id
     })
     conn.commit()
-    return render_template('address.html')
+    return redirect(url_for('user.address'))
 
 @user_bp.route('/chat')
 def chat():
@@ -211,7 +215,7 @@ def msg():
     return redirect(url_for('user.view_chat'))
 
 @user_bp.route('/products', methods=['POST'])
-def products():
+def add_to_cart():
     user_id = session['user_id']
     product_id = request.form['product_id']
     color_hex = request.form['color']
@@ -232,7 +236,7 @@ def products():
 
     if not color or not size:
         flash("Invalid color or size selected.")
-        return redirect(url_for('user.cart'))
+        return redirect(url_for('user.view_cart'))
 
     color_id = color.color_id
     size_id = size.size_id
@@ -248,7 +252,7 @@ def products():
 
     if not variant or variant.variant_stock < quantity:
         flash("Selected variant is out of stock or does not exist.")
-        return redirect(url_for('user.cart'))
+        return redirect(url_for('user.view_cart'))
 
     try:
         conn.execute(text("""
@@ -268,8 +272,66 @@ def products():
         conn.rollback()
         flash(f"Error adding to cart. {e}")
 
-    return redirect(url_for('user.cart'))
+    return redirect(url_for('user.view_products'))
 
+@user_bp.route('/products', methods=['GET'])
+def view_products():
+    query = request.args.get('query', '').lower()
+    size_filter = request.args.get('size')
+    in_stock = request.args.get('in_stock')
+
+    products_query = """
+            SELECT p.*, 
+            GROUP_CONCAT(DISTINCT c.color) AS colors, 
+            GROUP_CONCAT(DISTINCT s.size) AS sizes,
+            GROUP_CONCAT(DISTINCT i.image) AS images,
+            SUM(v.variant_stock) AS stock
+
+        FROM product p
+        
+        LEFT JOIN product_variants v ON p.product_id = v.product_id
+        LEFT JOIN colors c ON v.color_id = c.color_id
+        LEFT JOIN sizes s ON v.size_id = s.size_id
+        LEFT JOIN product_images pi ON p.product_id = pi.product_id
+        LEFT JOIN images i ON pi.image_id = i.image_id
+        WHERE (:query = '' OR LOWER(p.title) LIKE :like_query OR LOWER(p.description) LIKE :like_query)
+        GROUP BY p.product_id
+    """
+    params = {
+        'query': query,
+        'like_query': f"%{query}%"
+    }
+
+    rows = conn.execute(text(products_query), params).fetchall()
+
+    products = []
+    all_sizes = set()
+
+    for row in rows:
+        product_sizes = row.sizes.split(',') if row.sizes else []
+        product_colors = row.colors.split(',') if row.colors else []
+        product_images = row.images.split(',') if row.images else []
+
+        if size_filter and size_filter not in product_sizes:
+            continue
+        if in_stock == "1" and row.stock <= 0:
+            continue
+
+        all_sizes.update(product_sizes)
+
+        products.append({
+            'product_id': row.product_id,
+            'title': row.title,
+            'description': row.description,
+            'price': row.price,
+            'warranty': row.warranty,
+            'stock': row.stock,
+            'sizes': product_sizes,
+            'colors': product_colors,
+            'images': product_images,
+        })
+
+    return render_template('all_products.html', products=products, all_sizes=sorted(all_sizes))
 
 
 @user_bp.route('/cart')
@@ -314,6 +376,8 @@ def cart():
     })
 
     return render_template('cart.html', cart_items=cart_items, total=total)
+
+
 
 @user_bp.route('/delete', methods=['GET', 'POST'])
 def delete_item():
@@ -424,7 +488,7 @@ def view_orders():
                 """), {
                     'product_id': product.product_id,
                     'user_id': user_id
-                })
+                }).fetchall()
                 if temp:
                     temp = 1 
                 else:
@@ -457,8 +521,7 @@ def view_orders():
                     'title': product.title,
                     'image': product.image,
                 })
-  
-        return render_template('orders.html', order_items=order_items, order_items_pen=order_items_pen, user_type=user_type)
+        return render_template('orders.html', order_items=order_items, order_items_pen=order_items_pen, user_type=user_type, temp=temp)
 
     if user_type == 'B':
         user_orders = conn.execute(text("""
@@ -470,14 +533,17 @@ def view_orders():
 
         for user_order in user_orders:
             user_id = user_order.user_id
-            status = conn.execute(text("""select status from orders where order_id = :order_id
+            print(f'fffffffffffsssssss{user_order.order_id}dddddddddddfffffff')
+            status = conn.execute(text("""
+                select status from orders where order_id = :order_id
             """), {
-            'order_id': user_order.order_id
+                'order_id': user_order.order_id
             }).fetchone()
             if user_id not in grouped_orders:
                 grouped_orders[user_id] = {
                     'name': user_order.name,
                     'email': user_order.email,
+                    'status': status[0],
                     'orders': {}
                 }
             products = conn.execute(text("""
@@ -500,8 +566,6 @@ def view_orders():
             grouped_orders[user_id]['orders'][user_order.order_id] = product_list
         return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders, status=status)
 
-    return render_template('orders.html')
-
 @user_bp.route('/approve_order', methods=['GET', 'POST'])
 def approve_order():
     order_id = request.form['order_id']
@@ -512,7 +576,7 @@ def approve_order():
         'order_id': order_id
     })
     conn.commit()
-    return render_template('orders.html')
+    return redirect(url_for('user.view_orders'))
 
 @user_bp.route('/reject_order', methods=['GET', 'POST'])
 def reject_order():
@@ -524,7 +588,7 @@ def reject_order():
         'order_id': order_id
     })
     conn.commit()
-    return render_template('orders.html')
+    return redirect(url_for('user.view_orders'))
 
 @user_bp.route('/review', methods=['GET', 'POST'])
 def review():
@@ -533,15 +597,13 @@ def review():
     if user_type == 'A':
         product_id = request.form['product_id']
         product = conn.execute(text("""
-            select *
-            from reviews
-            where product_id = :product_id AND user_id = :user_id
+            select * from reviews where product_id = :product_id and user_id = :user_id
         """), {
             'product_id': product_id,
             'user_id': user_id
         }).fetchall()
         if product:
-            return render_template('reviews.html', products=products, user_type=user_type)
+            return render_template('reviews.html', product=product, user_type=user_type)
         products = conn.execute(text("""
             select p.title, p.price, i.image, p.description, p.product_id
             from product p
@@ -551,7 +613,7 @@ def review():
         """), {
             'product_id': product_id
         }).fetchall()
-        return redirect(url_for('user.user'))
+        # return redirect(url_for('user.user'))
     return render_template('reviews.html', products=products, user_type=user_type)
 
 @user_bp.route('/view_reviews', methods=['GET', 'POST'])
@@ -565,12 +627,10 @@ def view_reviews():
             'user_id': user_id
         }).fetchall()
         product_id = conn.execute(text("""
-        select product_id from reviews where user_id = :user_id
-        """
-        ), {
-          'user_id': user_id
+            select product_id from reviews where user_id = :user_id
+        """), {
+            'user_id': user_id
         }).fetchone()
-
         info = conn.execute(text("""
             select p.*, i.image from product p
             join product_images pi on p.product_id = pi.product_id
@@ -649,10 +709,10 @@ def complaint():
         return render_template('complaints.html', user_type=user_type, products=products, complaints=complaints)
     if user_type == 'B':
         complaints = conn.execute(text("""
-            SELECT c.user_id, c.product_id, c.description, c.title, c.complaint_type, 
+            select c.user_id, c.product_id, c.description, c.title, c.complaint_type, 
             u.username, 
-            p.title AS product_title,
-            i.image AS product_image
+            p.title as product_title,
+            i.image as product_image
             from complaints c
             join product p on c.product_id = p.product_id
             join user u on c.user_id = u.user_id

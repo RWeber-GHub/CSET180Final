@@ -60,20 +60,21 @@
                                         <div class="product-info">
                                             <h5 class="product-title">{{ item.title }}</h5>
                                         </div>
-                                    </div>
                                 {% endfor %}
+                                <p>{{ user_data.status }}</p>
+                                {% if user_data.status == 'pending' %}
+                                    <form method="POST" action="{{ url_for('user.approve_order') }}">
+                                        <input type="hidden" name="order_id" value="{{ order_id }}">
+                                        <button type="submit">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('user.reject_order') }}">
+                                        <input type="hidden" name="order_id" value="{{ order_id }}">
+                                        <button type="submit">Reject</button>
+                                    </form>
+                                {% endif %}
+                                </div>
                             </div>
                         </div>
-                        {% if status == 'pending' %}
-                            <form method="POST" action="{{ url_for('user.approve_order') }}">
-                                <input type="hidden" name="order_id" value="{{ order_id }}">
-                                <button type="submit">Approve</button>
-                            </form>
-                            <form method="POST" action="{{ url_for('user.reject_order') }}">
-                                <input type="hidden" name="order_id" value="{{ order_id }}">
-                                <button type="submit">Reject</button>
-                            </form>
-                        {% endif %}
                     {% endfor %}
                 </div>
             {% endfor %}

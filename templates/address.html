@@ -17,7 +17,7 @@
                         <input type="text" name="phonenumber" required placeholder="Phone-Number">
                         <input type="text" name="street_number" required placeholder="Street Number">
                         <input type="text" name="street_name" required placeholder="Street Name">
-                        <input type="text" name="unit_number" required placeholder="Unit Number">
+                        <input type="text" name="unit_number" placeholder="Unit Number">
                         <input type="text" name="unit_name" placeholder="Unit Name">
                         <input type="text" name="city" required placeholder="City">
                         <input type="text" name="state" required placeholder="State">
@@ -40,10 +40,12 @@
                     <p>{{ address.state }}</p>
                     <p>{{ address.zipcode }}</p>
                     <p>{{ address.default_address }}</p>
-                    <form method="POST" action="{{ url_for('user.default_address') }}">
-                        <input type="hidden" name="address_id" value="{{ address.address_id }}">
-                        <input type="submit" value="Make Default">
-                    </form>
+                    {% if address.default_address == 0 %}
+                        <form method="POST" action="{{ url_for('user.default_address') }}">
+                            <input type="hidden" name="address_id" value="{{ address.address_id }}">
+                            <input type="submit" value="Make Default">
+                        </form>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
