@@ -117,68 +117,128 @@ def default_address():
 
 @user_bp.route('/chat')
 def chat():
+    user_id = session['user_id']
     user_type = session['user_type']
+    regular_chats = []
+    complaint_chats = []
     if user_type == 'A':
         chats = conn.execute(text("""
-            select name, email, user_id from user where user_type = 'B'
+            select user_id from user where user_type = 'B'
         """)).fetchall()
-        type = 'Vendor List'
+        for chat in chats:
+            temp = conn.execute(text("""
+                select chat_id from chat 
+                where user_id = :user_id 
+                and admin_id = :admin_id
+                and chat_type not in ('return', 'refund', 'warranty')
+            """), {
+                'user_id': user_id,
+                'admin_id': chat[0]
+            }).fetchone()
+            if temp == None:
+                conn.execute(text("""
+                    insert into chat (user_id, admin_id)
+                    values (:user_id, :other_user_id)
+                """), {
+                    'user_id': user_id,
+                    'other_user_id': chat[0]
+                })
+        regular_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
+            from chat ch
+            join user b on ch.admin_id = b.user_id
+            where ch.user_id = :user_id
+            and ch.chat_type = 'regular'
+        """), {
+            'user_id': user_id
+        }).fetchall()
+
+        complaint_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
+            from chat ch
+            join user b on ch.admin_id = b.user_id
+            where ch.user_id = :user_id
+            and ch.chat_type in ('return', 'refund', 'warranty')
+        """), {
+            'user_id': user_id
+        }).fetchall()
     elif user_type == 'B':
-        chats = conn.execute(text("""
-            select name, email, user_id from user where user_type = 'A'
-        """)).fetchall()
-        type = 'User List'
-    return render_template('chat.html', chats=chats, type=type)
+        regular_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, a.name as user_name, a.email
+            from chat ch
+            join user a on ch.user_id = a.user_id
+            where ch.admin_id = :admin_id
+            and ch.chat_type = 'regular'
+        """), {
+            'admin_id': user_id
+        }).fetchall()
+        complaint_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, a.name as user_name, a.email
+            from chat ch
+            join user a on ch.user_id = a.user_id
+            where ch.admin_id = :admin_id
+            and ch.chat_type in ('return', 'refund', 'warranty')
+        """), {
+            'admin_id': user_id
+        }).fetchall()
+    bob = 1
+    return render_template('chat.html', regular_chats=regular_chats, complaint_chats=complaint_chats, bob=bob)
 
 @user_bp.route('/view_chat', methods=['POST', 'GET'])
 def view_chat():
-    other_user_id = int(request.form.get('user_id'))
     user_id = session['user_id']
+    chat_type = request.form.get('chat_type')
+    other_user_id = conn.execute(text("""
+        select admin_id from chat
+        where user_id = :user_id
+        and chat_type = :chat_type
+    """), {
+        'user_id': user_id,
+        'chat_type': chat_type
+    }).fetchone()
+    if other_user_id == None:
+        other_user_id = conn.execute(text("""
+            select user_id from chat
+            where admin_id = :user_id
+            and chat_type = :chat_type
+        """), {
+            'user_id': user_id,
+            'chat_type': chat_type
+        }).fetchone()
+
     name = conn.execute(text("""
         select name from user
         where user_id = :user_id
     """), {
-            'user_id': user_id,
+        'user_id': user_id,
     }).fetchone()
     other_name = conn.execute(text("""
         select name from user
         where user_id = :user_id 
     """), {
-            'user_id': other_user_id,
+        'user_id': other_user_id[0],
     }).fetchone() 
     chat = conn.execute(text("""
-            select chat_id from chat
-            where (user_id = :user_id and admin_id = :other_user_id)
-            or (user_id = :other_user_id and admin_id = :user_id)
+        select chat_id, chat_type from chat
+        where (user_id = :user_id and admin_id = :other_user_id)
+        or (user_id = :other_user_id and admin_id = :user_id)
+        and chat_type = :chat_type
     """), {
             'user_id': user_id,
-            'other_user_id': other_user_id
-    }).fetchone()
-    if chat == None:
-        conn.execute(text("""
-                insert into chat (user_id, admin_id)
-                values (:user_id, :other_user_id)
-        """), {
-            'user_id': user_id,
-            'other_user_id': other_user_id
-        })
-        conn.commit()
-        chat = conn.execute(text("""
-            select chat_id from chat
-            where (user_id = :user_id and admin_id = :other_user_id)
-            or (user_id = :other_user_id and admin_id = :user_id)
-        """), {
-            'user_id': user_id,
-            'other_user_id': other_user_id
-        }).fetchone()
+            'other_user_id': other_user_id[0],
+            'chat_type': chat_type
+    }).fetchall()
+    print(f'**************{chat}***************')
     chat_id = chat[0]
     messages = conn.execute(text("""
         select user_id, text, image, msg_date
         from msg
         where chat_id = :chat_id
+        and msg_type = :msg_type
         order by msg_date asc
     """), {
-        'chat_id': chat_id
+        'chat_id': chat_id,
+        'msg_type': chat_type
     }).fetchall()
     return render_template('chat.html', messages=messages, chat=chat, name=name, other_name=other_name)
 
@@ -201,15 +261,22 @@ def msg():
         image_path = os.path.join('static', 'uploads', filename)
     else:
         image_path = None
-    
+    chat_type = conn.execute(text("""
+        select chat_type from chat
+        where chat_id = :chat_id
+    """), {
+        'chat_id': chat_id
+    }).fetchone()
+
     conn.execute(text("""
-        insert into msg (chat_id, user_id, text, image)
-        values (:chat_id, :user_id, :text, :image)
+        insert into msg (chat_id, user_id, text, image, msg_type)
+        values (:chat_id, :user_id, :text, :image, :msg_type)
     """), {
         'chat_id': chat_id,
         'user_id': user_id,
         'text': msg,
-        'image': image_path
+        'image': image_path,
+        'msg_type': chat_type[0]
     })
     conn.commit()
     return redirect(url_for('user.view_chat'))

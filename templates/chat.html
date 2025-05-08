@@ -1,54 +1,80 @@
-{% extends 'base.html'%}
+{% extends 'base.html' %}
 {% block content %}
 <link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
     <div class="container">
         <header>
             <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
+            <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
             <h1 class="page-title">Chat</h1>
         </header>
-        {% if chats %}
-            {% for chat in chats %}
-                <div class="chat-card">
-                    <div class="chat-info">
-                    <p><strong>{{ chat.name }}</strong></p>
-                    <p><strong>{{ chat.email }}</strong></p>
-                    <form method="POST" action="{{ url_for('user.view_chat') }}">
-                        <input type="hidden" name="user_id" value="{{ chat.user_id }}">
-                        <input type="submit" value="Chat">
-                    </form>
-                </div>
-            </div>
-            {% endfor %}
+        <p>{{ e }}</p>
+        {% if bob == 1 %}
+            <h2>Regular Chats</h2>
+            {% if regular_chats %}
+                {% for chat in regular_chats %}
+                    <div class="chat-card">
+                        <div class="chat-info">
+                            <p><strong>{{ chat.user_name or chat.admin_name }}</strong></p>
+                            <p><strong>{{ chat.email }}</strong></p>
+                            <p><strong>{{ chat.chat_type }}</strong></p>
+                            <form method="POST" action="{{ url_for('user.view_chat') }}">
+                                <input type="hidden" name="user_id" value="{{ chat.user_id }}">
+                                <input type="hidden" name="chat_type" value="{{ chat.chat_type }}">
+                                <input type="submit" value="Chat">
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <h2>Complaint Chats</h2>
+            {% if complaint_chats %}
+                {% for chat in complaint_chats %}
+                    <div class="chat-card">
+                        <div class="chat-info">
+                            <p><strong>{{ chat.user_name or chat.admin_name }}</strong></p>
+                            <p><strong>{{ chat.email }}</strong></p>
+                            <p><strong>{{ chat.chat_type }}</strong></p>
+                            
+                            <form method="POST" action="{{ url_for('user.view_chat') }}">
+                                <input type="hidden" name="user_id" value="{{ chat.user_id }}">
+                                <input type="hidden" name="chat_type" value="{{ chat.chat_type }}">
+                                <input type="submit" value="Chat">
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
         {% endif %}
         {% if chat %}
-        <h3>Send a Message:</h3>
-        <form method="POST" action="{{ url_for('user.msg') }}" enctype="multipart/form-data">
-            <input type="hidden" name="chat_id" value="{{ chat.chat_id }}">
-            <textarea name="text" placeholder="Type message..."></textarea><br>
-            <input type="file" name="image"><br>
-            <input type="submit" value="Send">
-        </form>
-        {% for msg in messages %}
-        <div class="message-wrapper">
-            {% if msg.user_id == session['user_id'] %}
-            <div class="my_message">
-                <p><strong>{{ name[0] }} (You):</strong> {{ msg.text }}</p>
-            
-            {% else %}
-            <div class="other_message">
-                <p><strong>{{ other_name[0] }}:</strong> {{ msg.text }}</p>
-            {% endif %}
-            {% if msg.image %}
-            <img src="{{ url_for('static', filename=msg.image.replace('static\\', '').replace('\\', '/')) }}">
-            {% endif %}
-            </div>
-            </div>
-        </div>
-        {% endfor %}
-    {% endif %}
-</div>
+            <h3>Send a Message:</h3>
+            <form method="POST" action="{{ url_for('user.msg') }}" enctype="multipart/form-data">
+                <input type="hidden" name="chat_id" value="{{ chat.chat_id }}">
+                <textarea name="text" placeholder="Type message..."></textarea><br>
+                <input type="file" name="image"><br>
+                <input type="submit" value="Send">
+            </form>
+            <h3>Messages</h3>
+            {% for msg in messages %}
+                <div class="message-wrapper">
+                    {% if msg.user_id == session['user_id'] %}
+                        <div class="my_message">
+                            <p><strong>{{ name[0] }} (You):</strong> {{ msg.text }}</p>
+                    {% else %}
+                        <div class="other_message">
+                            <p><strong>{{ other_name[0] }}:</strong> {{ msg.text }}</p>
+                    {% endif %}
+
+                    {% if msg.image %}
+                        <img src="{{ url_for('static', filename=msg.image.replace('static\\', '').replace('\\', '/')) }}" alt="Image">
+                    {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 </body>
+
 <style>
 .container {
     max-width: 1200px;
@@ -75,7 +101,7 @@ header {
 .link:hover {
     color: #51048c;
 }
-a:visited{
+a:visited {
     color: white;
 }
 .page-title {

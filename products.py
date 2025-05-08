@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
-from db import engine
+from db import engine, conn
+from datetime import date, datetime
 import os
 import json
 
@@ -135,7 +136,8 @@ def product_gallery():
         if user_type == 'B':
             query = text("""
                 SELECT 
-                    p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
+                    p.product_id, p.title, p.description, p.price AS original_price, p.stock, p.warranty,
+                    d.discount_percent, d.discount_start, d.discount_end,
                     GROUP_CONCAT(DISTINCT i.image) AS images,
                     GROUP_CONCAT(DISTINCT c.color) AS colors,
                     GROUP_CONCAT(DISTINCT s.size) AS sizes
@@ -146,14 +148,17 @@ def product_gallery():
                 LEFT JOIN colors c ON pc.color_id = c.color_id
                 LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
                 LEFT JOIN sizes s ON ps.size_id = s.size_id
-                WHERE p.user_id = :user_id
+                LEFT JOIN discounts d ON p.product_id = d.product_id
+                {WHERE_CLAUSE}
                 GROUP BY p.product_id
+
             """)
             results = conn.execute(query, {'user_id': user_id}).fetchall()
         else:
             query = text("""
                 SELECT 
-                    p.product_id, p.title, p.description, p.price, p.stock, p.warranty,
+                    p.product_id, p.title, p.description, p.price AS original_price, p.stock, p.warranty,
+                    d.discount_percent, d.discount_start, d.discount_end,
                     GROUP_CONCAT(DISTINCT i.image) AS images,
                     GROUP_CONCAT(DISTINCT c.color) AS colors,
                     GROUP_CONCAT(DISTINCT s.size) AS sizes
@@ -164,11 +169,13 @@ def product_gallery():
                 LEFT JOIN colors c ON pc.color_id = c.color_id
                 LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
                 LEFT JOIN sizes s ON ps.size_id = s.size_id
+                LEFT JOIN discounts d ON p.product_id = d.product_id
+                {WHERE_CLAUSE}
                 GROUP BY p.product_id
+
             """)
             results = conn.execute(query).fetchall()
 
-        # Get variants
         variant_query = text("""
             SELECT pv.product_id, c.color, s.size, pv.variant_stock, pv.price
             FROM product_variants pv
@@ -191,18 +198,36 @@ def product_gallery():
     products = []
     for row in results:
         product_id = row.product_id
-        products.append({
-            'product_id': product_id,
-            'title': row.title,
-            'description': row.description,
-            'price': row.price,
-            'stock': row.stock,
-            'warranty': row.warranty,
-            'images': row.images.split(',') if row.images else [],
-            'colors': row.colors.split(',') if row.colors else [],
-            'sizes': row.sizes.split(',') if row.sizes else [],
-            'variants': product_variants_map.get(product_id, [])
-        })
+    
+    discount = None
+    if row.discount_percent and row.discount_start and row.discount_end:
+        if row.discount_start <= date.today() <= row.discount_end:
+            discount = {
+                'percent': row.discount_percent,
+                'start': row.discount_start,
+                'end': row.discount_end,
+                'new_price': float(row.original_price) * (1 - row.discount_percent / 100)
+            }
+
+    products.append({
+        'product_id': product_id,
+        'title': row.title,
+        'description': row.description,
+        'price': float(row.original_price),
+        'stock': row.stock,
+        'warranty': row.warranty,
+        'images': row.images.split(',') if row.images else [],
+        'colors': row.colors.split(',') if row.colors else [],
+        'sizes': row.sizes.split(',') if row.sizes else [],
+        'variants': product_variants_map.get(product_id, []),
+        'discount': discount
+    })
+
+    for product in products:
+        active_discount = next(
+            (d for d in product.discounts if d.discount_start <= date.today() <= d.discount_end), None
+        )
+        product.discount = active_discount
 
     return render_template('all_products.html', products=products, user_type=user_type)
 
@@ -286,4 +311,28 @@ def delete_product(product_id):
 
     flash("Product deleted.")
     return redirect(url_for('products.product_gallery'))
+
+
+@products_bp.route('/add_discount/<int:product_id>', methods=['POST'])
+def add_discount(product_id):
+    try:
+        discount_amount = int(request.form['discount_amount'])
+        discount_start = request.form['discount_start']
+        discount_end = request.form['discount_end']
+        query = text("""
+            INSERT INTO discounts (discount_amount, discount_start, discount_end, product_id)
+            VALUES (:amount, :start, :end, :product_id)
+        """)
+
+        conn.execute(query, {
+            'amount': discount_amount,
+            'start': discount_start,
+            'end': discount_end,
+            'product_id': product_id
+        })
+        conn.commit()
+        return redirect(url_for('user.view_products'))
+
+    except Exception as e:
+        return f"An error occurred: {str(e)}", 400
 

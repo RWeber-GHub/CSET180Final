@@ -34,7 +34,22 @@
 
     <div class="product-gallery">
         {% for product in products %}
-        <div class="product-card">
+        <div class="product-card" style="position: relative;">
+            {% if product.discount %}
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: green;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-bottom-right-radius: 8px;
+                z-index: 10;">
+                -{{ product.discount.percent }}%
+            </div>
+            {% endif %}
+        
             <div class="product-images">
                 {% if product.images %}
                 <div id="carousel-{{ product.product_id }}" class="carousel">
@@ -50,16 +65,33 @@
                 <p>No images</p>
                 {% endif %}
             </div>
-
+        
             <h3>{{ product.title }}</h3>
             <p>{{ product.description }}</p>
-            <p><strong>Price:</strong> $<span id="price-{{ product.product_id }}">{{ "%.2f"|format(product.price) }}</span></p>
+        
+            <div class="price-section">
+                {% if product.discount %}
+                    <p>
+                        <strong>Price:</strong>
+                        <span class="original-price" style="text-decoration: line-through; color: grey;">
+                            ${{ "%.2f"|format(product.price) }}
+                        </span>
+                        <br>
+                        <span class="discounted-price" style="color: green; font-weight: bold;">
+                            ${{ "%.2f"|format(product.discount.new_price) }}
+                        </span>
+                    </p>
+                {% else %}
+                    <p><strong>Price:</strong> $<span class="no-discount-price">{{ "%.2f"|format(product.price) }}</span></p>
+                {% endif %}
+            </div>
+        
             <p><strong>Warranty:</strong> {{ product.warranty }}</p>
-
-            <form method="POST" action="{{ url_for('user.add_to_cart') }}"onsubmit="return validateVariant({{ product.product_id }})">
+        
+            <form method="POST" action="{{ url_for('user.add_to_cart') }}" onsubmit="return validateVariant({{ product.product_id }})">
                 <input type="hidden" name="product_id" value="{{ product.product_id }}">
                 <input type="hidden" name="color" class="color-input">
-
+        
                 {% if product.colors %}
                 <div class="product-colors">
                     <strong>Colors:</strong>
@@ -72,7 +104,7 @@
                     </div>
                 </div>
                 {% endif %}
-
+        
                 {% if product.sizes %}
                 <div class="product-sizes">
                     <strong>Sizes:</strong>
@@ -83,19 +115,39 @@
                     </select>
                 </div>
                 {% endif %}
-
+        
                 <input type="number" name="quantity" min="1" max="{{ product.stock }}" required value="1">
                 <input type="submit" value="Add to Cart" class="submit-btn">
             </form>
-
+        
             <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
                 <button>Edit Product</button>
             </a>
-
+        
+            <button type="button" onclick="toggleDiscountForm({{ product.product_id }})">Add Discount</button>
+        
+            <form method="POST" action="{{ url_for('products.add_discount', product_id=product.product_id ) }}"
+                class="discount-form" id="discount-form-{{ product.product_id }}" style="display: none; margin-top: 1rem;">
+                <label>
+                    Amount (%):
+                    <input type="number" name="discount_amount" min="1" max="100" required>
+                </label><br>
+                <label>
+                    Start Date:
+                    <input type="date" name="discount_start" required>
+                </label><br>
+                <label>
+                    End Date:
+                    <input type="date" name="discount_end" required>
+                </label><br>
+                <input type="submit" value="Apply Discount" class="submit-btn">
+            </form>
+        
             <script>
-            window["variants_{{ product.product_id }}"] = {{ product.variants}};
+                window["variants_{{ product.product_id }}"] = {{ product.variants }};
             </script>
         </div>
+        
         {% endfor %}
     </div>
 </div>
@@ -219,6 +271,36 @@ input[type="submit"], button {
 input[type="submit"]:hover, button:hover {
     background-color: #5a0cab;
 }
+
+/* discounts --- */
+.discount-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 10px;
+    font-weight: bold;
+    border-top-left-radius: 16px;
+    border-bottom-right-radius: 12px;
+}
+
+.product-card {
+    position: relative; 
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.discounted-price {
+    color: #e53935;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
 </style>
 
 <script>
@@ -278,6 +360,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+function toggleDiscountForm(productId) {
+    const form = document.getElementById(`discount-form-${productId}`);
+    if (form.style.display === "none") {
+        form.style.display = "block";
+    } else {
+        form.style.display = "none";
+    }
+}
+
+
 </script>
 
 {% endblock %}
