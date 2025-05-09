@@ -99,14 +99,14 @@
                         <p><strong>Description: {{ complaint.description }}</strong></p>
                         <p><strong>Product Name: {{ complaint.product_title }}</strong></p>
                         <img src="{{ complaint.product_image }}" class="product-image" alt="">
-                        {% if complaint.complaint_type == 'A' %}
-                            <p><strong>Complaint Type: Retund</strong></p>
+                        {% if complaint.complaint_type == 'return' %}
+                            <p><strong>Complaint Type: Return</strong></p>
                         {% endif %}
-                        {% if complaint.complaint_type == 'B' %}
+                        {% if complaint.complaint_type == 'refund' %}
                             <p><strong>Complaint Type: Refund</strong></p>
                         {% endif %}
-                        {% if complaint.complaint_type == 'C' %}
-                            <p><strong>Complaint Type: Warrenty</strong></p>
+                        {% if complaint.complaint_type == 'warranty' %}
+                            <p><strong>Complaint Type: Warranty</strong></p>
                         {% endif %}
                     </div>
                 </div>

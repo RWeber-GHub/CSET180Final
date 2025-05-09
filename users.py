@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from sqlalchemy import create_engine, text
 import bcrypt
 from db import engine, conn
-from datetime import datetime
+from datetime import date, datetime
 import os
 from werkzeug.utils import secure_filename
 
@@ -182,29 +182,39 @@ def chat():
             'admin_id': user_id
         }).fetchall()
     bob = 1
+    
     return render_template('chat.html', regular_chats=regular_chats, complaint_chats=complaint_chats, bob=bob)
 
 @user_bp.route('/view_chat', methods=['POST', 'GET'])
 def view_chat():
     user_id = session['user_id']
+    temp = request.args.get('temp')
+    chat_id = request.form.get('chat_id')
     chat_type = request.form.get('chat_type')
+    if temp:
+        chat_id = request.args.get('chat_id')
+        chat_type = request.args.get('chat_type')
     other_user_id = conn.execute(text("""
         select admin_id from chat
         where user_id = :user_id
         and chat_type = :chat_type
+        and chat_id = :chat_id
     """), {
         'user_id': user_id,
-        'chat_type': chat_type
+        'chat_type': chat_type,
+        'chat_id': chat_id
     }).fetchone()
     if other_user_id == None:
         other_user_id = conn.execute(text("""
             select user_id from chat
             where admin_id = :user_id
             and chat_type = :chat_type
+            and chat_id = :chat_id
         """), {
             'user_id': user_id,
-            'chat_type': chat_type
-        }).fetchone()
+            'chat_type': chat_type,
+            'chat_id': chat_id
+    }).fetchone()
 
     name = conn.execute(text("""
         select name from user
@@ -218,18 +228,13 @@ def view_chat():
     """), {
         'user_id': other_user_id[0],
     }).fetchone() 
+
     chat = conn.execute(text("""
-        select chat_id, chat_type from chat
-        where (user_id = :user_id and admin_id = :other_user_id)
-        or (user_id = :other_user_id and admin_id = :user_id)
-        and chat_type = :chat_type
+        select chat_id from chat
+        where chat_id = :chat_id
     """), {
-            'user_id': user_id,
-            'other_user_id': other_user_id[0],
-            'chat_type': chat_type
-    }).fetchall()
-    print(f'**************{chat}***************')
-    chat_id = chat[0]
+        'chat_id': chat_id
+    }).fetchone()
     messages = conn.execute(text("""
         select user_id, text, image, msg_date
         from msg
@@ -240,20 +245,16 @@ def view_chat():
         'chat_id': chat_id,
         'msg_type': chat_type
     }).fetchall()
-    return render_template('chat.html', messages=messages, chat=chat, name=name, other_name=other_name)
+    return render_template('chat.html', messages=messages, chat=chat[0], name=name, other_name=other_name)
 
 @user_bp.route('/msg', methods=['GET', 'POST'])
 def msg():
-    chat_id = request.form['chat_id']
+    chat_id = request.form.get('chat_id')
     user_id = session['user_id']
     msg = request.form.get('text')
     image = request.files.get('image')
-
-    print(f'*&*&{image}*&*&')
-
     UPLOAD_FOLDER = os.path.join('static', 'uploads')
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
     if image and image.filename:
         filename = secure_filename(image.filename)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -267,7 +268,7 @@ def msg():
     """), {
         'chat_id': chat_id
     }).fetchone()
-
+    chat_type = chat_type[0]
     conn.execute(text("""
         insert into msg (chat_id, user_id, text, image, msg_type)
         values (:chat_id, :user_id, :text, :image, :msg_type)
@@ -276,10 +277,10 @@ def msg():
         'user_id': user_id,
         'text': msg,
         'image': image_path,
-        'msg_type': chat_type[0]
+        'msg_type': chat_type
     })
     conn.commit()
-    return redirect(url_for('user.view_chat'))
+    return redirect(url_for('user.view_chat', chat_id=chat_id, chat_type=chat_type, temp=1))
 
 @user_bp.route('/products', methods=['POST'])
 def add_to_cart():
@@ -347,26 +348,34 @@ def view_products():
     size_filter = request.args.get('size')
     in_stock = request.args.get('in_stock')
 
-    products_query = """
-            SELECT p.*, 
-            GROUP_CONCAT(DISTINCT c.color) AS colors, 
-            GROUP_CONCAT(DISTINCT s.size) AS sizes,
-            GROUP_CONCAT(DISTINCT i.image) AS images,
-            SUM(v.variant_stock) AS stock
+    today = date.today()
 
-        FROM product p
-        
-        LEFT JOIN product_variants v ON p.product_id = v.product_id
-        LEFT JOIN colors c ON v.color_id = c.color_id
-        LEFT JOIN sizes s ON v.size_id = s.size_id
-        LEFT JOIN product_images pi ON p.product_id = pi.product_id
-        LEFT JOIN images i ON pi.image_id = i.image_id
-        WHERE (:query = '' OR LOWER(p.title) LIKE :like_query OR LOWER(p.description) LIKE :like_query)
-        GROUP BY p.product_id
-    """
+    products_query = """
+    SELECT p.product_id,
+           p.title,
+           p.description,
+           p.price,
+           p.warranty,
+           MAX(d.discount_amount) AS discount_amount,
+           GROUP_CONCAT(DISTINCT c.color) AS colors,
+           GROUP_CONCAT(DISTINCT s.size) AS sizes,
+           GROUP_CONCAT(DISTINCT i.image) AS images,
+           SUM(v.variant_stock) AS stock
+    FROM product p
+    LEFT JOIN product_variants v ON p.product_id = v.product_id
+    LEFT JOIN colors c ON v.color_id = c.color_id
+    LEFT JOIN sizes s ON v.size_id = s.size_id
+    LEFT JOIN product_images pi ON p.product_id = pi.product_id
+    LEFT JOIN images i ON pi.image_id = i.image_id
+    LEFT JOIN discounts d ON p.product_id = d.product_id
+    WHERE (:query = '' OR LOWER(p.title) LIKE :like_query OR LOWER(p.description) LIKE :like_query)
+    GROUP BY p.product_id
+"""
+
     params = {
         'query': query,
-        'like_query': f"%{query}%"
+        'like_query': f"%{query}%",
+        'today': today
     }
 
     rows = conn.execute(text(products_query), params).fetchall()
@@ -384,6 +393,10 @@ def view_products():
         if in_stock == "1" and row.stock <= 0:
             continue
 
+        discount_price = None
+        if row.discount_amount and row.discount_amount > 0:
+            discount_price = round(row.price * (1 - row.discount_amount / 100), 2)
+
         all_sizes.update(product_sizes)
 
         products.append({
@@ -391,6 +404,8 @@ def view_products():
             'title': row.title,
             'description': row.description,
             'price': row.price,
+            'discount_amount': row.discount_amount,
+            'discount_price': discount_price,
             'warranty': row.warranty,
             'stock': row.stock,
             'sizes': product_sizes,
@@ -412,16 +427,16 @@ def cart():
     cart_id = cart.cart_id
     
     items = conn.execute(text("""
-    SELECT 
-        p.product_id, p.title, p.price, i.image, ci.quantity,
-        c.color, s.size
-    FROM cart_items ci
-    JOIN product p ON ci.product_id = p.product_id
-    LEFT JOIN product_images pi ON p.product_id = pi.product_id
-    LEFT JOIN images i ON pi.image_id = i.image_id
-    LEFT JOIN colors c ON ci.color_id = c.color_id
-    LEFT JOIN sizes s ON ci.size_id = s.size_id
-    WHERE ci.cart_id = :cart_id
+    select 
+    p.product_id, p.title, p.price, i.image, ci.quantity,
+    c.color, s.size
+    from cart_items ci
+    join product p on ci.product_id = p.product_id
+    left join product_images pi on p.product_id = pi.product_id
+    left join images i on pi.image_id = i.image_id
+    left join colors c on ci.color_id = c.color_id
+    left join sizes s on ci.size_id = s.size_id
+    where ci.cart_id = :cart_id
 """), {
     'cart_id': cart_id
 }).fetchall()
@@ -527,16 +542,13 @@ def view_orders():
         }).fetchall()
         order_items = []
         order_items_pen = []
-
         for order_row in order_ids:
             order_id = order_row[0]
-            print(f'***{order_id}***')
             items = conn.execute(text("""
                 select product_id from order_products where order_id = :order_id
             """), {
                 'order_id': order_id
             }).fetchall()
-            print(f'***{items}***')
             for item in items:
                 product = conn.execute(text("""
                     select p.product_id, p.title, p.price, i.image
@@ -556,6 +568,7 @@ def view_orders():
                     'product_id': product.product_id,
                     'user_id': user_id
                 }).fetchall()
+                print(f'{temp}))))))))))))))))))))))))))))))))))))')
                 if temp:
                     temp = 1 
                 else:
@@ -564,7 +577,7 @@ def view_orders():
                     'product_id': product.product_id,
                     'title': product.title,
                     'image': product.image,
-                    'reviewed': temp
+                    'temp': temp
                 })
         for order_row_pen in order_ids_pen:
             order_id = order_row_pen[0]
@@ -588,7 +601,7 @@ def view_orders():
                     'title': product.title,
                     'image': product.image,
                 })
-        return render_template('orders.html', order_items=order_items, order_items_pen=order_items_pen, user_type=user_type, temp=temp)
+        return render_template('orders.html', order_items=order_items, order_items_pen=order_items_pen, user_type=user_type)
 
     if user_type == 'B':
         user_orders = conn.execute(text("""
@@ -600,7 +613,7 @@ def view_orders():
 
         for user_order in user_orders:
             user_id = user_order.user_id
-            print(f'fffffffffffsssssss{user_order.order_id}dddddddddddfffffff')
+
             status = conn.execute(text("""
                 select status from orders where order_id = :order_id
             """), {
@@ -680,7 +693,6 @@ def review():
         """), {
             'product_id': product_id
         }).fetchall()
-        # return redirect(url_for('user.user'))
     return render_template('reviews.html', products=products, user_type=user_type)
 
 @user_bp.route('/view_reviews', methods=['GET', 'POST'])
@@ -688,11 +700,14 @@ def view_reviews():
     user_type = session['user_type']
     user_id = session['user_id']
     if user_type == 'A':
-        reviews = conn.execute(text("""
-            select * from reviews where user_id = :user_id
-        """), {
-            'user_id': user_id
-        }).fetchall()
+        try:
+            reviews = conn.execute(text("""
+                select * from reviews where user_id = :user_id
+            """), {
+                'user_id': user_id
+            }).fetchall()
+        except:
+            return render_template('reviews.html')
         product_id = conn.execute(text("""
             select product_id from reviews where user_id = :user_id
         """), {
@@ -704,7 +719,7 @@ def view_reviews():
             join images i on pi.image_id = i.image_id
             where p.product_id = :product_id
         """), {
-          'product_id': product_id[0]
+          'product_id': product_id
         }).fetchall()
         return render_template('reviews.html', reviews=reviews, user_type=user_type, info=info)
     if user_type == 'B':
@@ -721,6 +736,18 @@ def view_reviews():
             'user_id': user_id
         }).fetchall()
     return render_template('reviews.html', products=products, user_type=user_type)
+
+@user_bp.route('/delete_review', methods=['GET', 'POST'])
+def delete_review():
+    review_id = request.form.get('review_id')
+    print(f'((((((((((((((((()))))))))((({review_id}((())))))))((((((()))))))')
+    conn.execute(text("""
+        delete from reviews where review_id = :review_id
+    """), {
+        'review_id': review_id
+    })
+    conn.commit()
+    return redirect(url_for('user.view_reviews'))
 
 @user_bp.route('/post_review', methods=['GET', 'POST'])
 def post_review():
@@ -789,7 +816,6 @@ def complaint():
         """), {
             'user_id': user_id
         }).fetchall()
-        print(f'^^^{complaints}^^^')
     return render_template('complaints.html', user_type=user_type, complaints=complaints)
 
 
