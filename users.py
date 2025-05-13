@@ -340,7 +340,7 @@ def add_to_cart():
         conn.rollback()
         flash(f"Error adding to cart. {e}")
 
-    return redirect(url_for('user.view_products'))
+    return redirect(url_for('products.product_gallery'))
 
 @user_bp.route('/products', methods=['GET'])
 def view_products():
@@ -486,6 +486,15 @@ def delete_item():
 @user_bp.route('/order', methods=['GET', 'POST'])
 def place_order():
     user_id = session['user_id']
+    address = conn.execute(text("""
+        select address_type from user_address where 
+        address_type = 'default'
+        and user_id = :user_id
+    """), {
+        'user_id': user_id
+    })
+    if not address:
+        return redirect(url_for('user.cart', e='Please set default address'))
     conn.execute(text("""
         insert into orders (user_id)
         values
@@ -496,7 +505,7 @@ def place_order():
     conn.commit()
 
     order_id = conn.execute(text("""
-        select order_id from orders where user_id = :user_id
+        select order_id from orders where user_id = :user_id 
     """), {
         'user_id': user_id
     }).fetchone()[0]
@@ -646,28 +655,34 @@ def view_orders():
             grouped_orders[user_id]['orders'][user_order.order_id] = product_list
         return render_template('orders.html', user_type=user_type, grouped_orders=grouped_orders, status=status)
 
-@user_bp.route('/approve_order', methods=['GET', 'POST'])
+@user_bp.route('/approve_order', methods=['POST'])
 def approve_order():
     order_id = request.form['order_id']
+    order = conn.execute(text("""
+        select status from orders where order_id = :order_id
+    """), {'order_id': order_id}).fetchone()
 
-    conn.execute(text("""
-        update orders set status = "confirmed" where order_id = :order_id
-    """), {
-        'order_id': order_id
-    })
-    conn.commit()
+    if order and order.status == 'pending':
+        conn.execute(text("""
+            update orders set status = 'confirmed' where order_id = :order_id
+        """), {'order_id': order_id})
+        conn.commit()
+        return redirect(url_for('user.view_orders'))
     return redirect(url_for('user.view_orders'))
 
-@user_bp.route('/reject_order', methods=['GET', 'POST'])
+@user_bp.route('/reject_order', methods=['POST'])
 def reject_order():
     order_id = request.form['order_id']
+    order = conn.execute(text("""
+        select status from orders where order_id = :order_id
+    """), {'order_id': order_id}).fetchone()
 
-    conn.execute(text("""
-        update orders set status = "rejected" where order_id = :order_id
-    """), {
-        'order_id': order_id
-    })
-    conn.commit()
+    if order and order.status == 'pending':
+        conn.execute(text("""
+            update orders set status = 'rejected' where order_id = :order_id
+        """), {'order_id': order_id})
+        conn.commit()
+        return redirect(url_for('user.view_orders'))
     return redirect(url_for('user.view_orders'))
 
 @user_bp.route('/review', methods=['GET', 'POST'])
@@ -699,48 +714,58 @@ def review():
 def view_reviews():
     user_type = session['user_type']
     user_id = session['user_id']
+    sort_by = request.args.get('sort_by')
+
+    order_clause = ""
+    if sort_by == 'date_desc':
+        order_clause = "ORDER BY review_date DESC"
+    elif sort_by == 'date_asc':
+        order_clause = "ORDER BY review_date ASC"
+    elif sort_by == 'rating_desc':
+        order_clause = "ORDER BY rating DESC"
+    elif sort_by == 'rating_asc':
+        order_clause = "ORDER BY rating ASC"
+
     if user_type == 'A':
         try:
-            reviews = conn.execute(text("""
-                select * from reviews where user_id = :user_id
-            """), {
-                'user_id': user_id
-            }).fetchall()
+            query = f"SELECT * FROM reviews WHERE user_id = :user_id {order_clause}"
+            reviews = conn.execute(text(query), {'user_id': user_id}).fetchall()
         except:
             return render_template('reviews.html')
+
         product_id = conn.execute(text("""
-            select product_id from reviews where user_id = :user_id
-        """), {
-            'user_id': user_id
-        }).fetchone()
-        info = conn.execute(text("""
-            select p.*, i.image from product p
-            join product_images pi on p.product_id = pi.product_id
-            join images i on pi.image_id = i.image_id
-            where p.product_id = :product_id
-        """), {
-          'product_id': product_id
-        }).fetchall()
+            SELECT product_id FROM reviews WHERE user_id = :user_id LIMIT 1
+        """), {'user_id': user_id}).fetchone()
+
+        info = []
+        if product_id:
+            info = conn.execute(text("""
+                SELECT p.*, i.image FROM product p
+                JOIN product_images pi ON p.product_id = pi.product_id
+                JOIN images i ON pi.image_id = i.image_id
+                WHERE p.product_id = :product_id
+            """), {'product_id': product_id[0]}).fetchall()
+
         return render_template('reviews.html', reviews=reviews, user_type=user_type, info=info)
+
     if user_type == 'B':
         products = conn.execute(text("""
-            select p.title, p.description, p.price, p.stock,
-            r.rating, r.description as review_description, r.image AS review_image, r.review_date,
-            i.image as product_image
-            from product p
-            inner join reviews r on p.product_id = r.product_id
-            left join product_images pi on p.product_id = pi.product_id
-            left join images i on pi.image_id = i.image_id
-            where p.user_id = :user_id
-        """), {
-            'user_id': user_id
-        }).fetchall()
-    return render_template('reviews.html', products=products, user_type=user_type)
+            SELECT p.title, p.description, p.price, p.stock,
+                   r.rating, r.description AS review_description, r.image AS review_image, r.review_date,
+                   i.image AS product_image
+            FROM product p
+            INNER JOIN reviews r ON p.product_id = r.product_id
+            LEFT JOIN product_images pi ON p.product_id = pi.product_id
+            LEFT JOIN images i ON pi.image_id = i.image_id
+            WHERE p.user_id = :user_id
+        """), {'user_id': user_id}).fetchall()
+
+        return render_template('reviews.html', products=products, user_type=user_type)
 
 @user_bp.route('/delete_review', methods=['GET', 'POST'])
 def delete_review():
     review_id = request.form.get('review_id')
-    print(f'((((((((((((((((()))))))))((({review_id}((())))))))((((((()))))))')
+
     conn.execute(text("""
         delete from reviews where review_id = :review_id
     """), {
@@ -818,63 +843,45 @@ def complaint():
         }).fetchall()
     return render_template('complaints.html', user_type=user_type, complaints=complaints)
 
-
-@user_bp.route('/post_complaint', methods=['GET', 'POST'])
+@user_bp.route('/post_complaint', methods=['POST'])
 def post_complaint():
     user_id = session['user_id']
     product_id = request.form['product_id']
-    complaints = conn.execute(text("""
-        select * from complaints where user_id = :user_id and product_id = :product_id
+    title = request.form['title']
+    description = request.form['description']
+    complaint_type = request.form['complaint']
+    conn.execute(text("""
+        insert into complaints (user_id, product_id, complaint_type, complaint_date, title, description, status)
+        value (:user_id, :product_id, :complaint_type, now(), :title, :description, 'pending')
     """), {
         'user_id': user_id,
-        'product_id': product_id
-    }).fetchall()
-    
-    if not complaints:
-        if request.method == 'POST':
-            product_id = request.form['product_id']
-            title = request.form['title']
-            description = request.form['description']
-            complaint_type = request.form['complaint']
-            now = datetime.now()
-            complaint_date = now.strftime("%Y-%m-%d")
-            conn.execute(text("""
-                insert into complaints (user_id, product_id, complaint_type, complaint_date, title, description)
-                values
-                (:user_id, :product_id, :complaint_type, :complaint_date, :title, :description)
-            """), {
-                'user_id': user_id,
-                'product_id': product_id,
-                'complaint_type': complaint_type,
-                'complaint_date': complaint_date,
-                'title': title,
-                'description': description
-            })
-            conn.commit()
-        return redirect(url_for('user.view_orders'))
-    else:
-        product_id = request.form['product_id']
-        title = request.form['title']
-        description = request.form['description']
-        complaint_type = request.form['complaint']
-        now = datetime.now()
-        complaint_date = now.strftime("%Y-%m-%d")
-        conn.execute(text("""
-            update complaints set 
-            complaint_type = :complaint_type,
-            complaint_date = :complaint_date,
-            title = :title,
-            description = :description
-            where 
-            user_id = :user_id and 
-            product_id = :product_id
-        """), {
-            'user_id': user_id,
-            'product_id': product_id,
-            'complaint_type': complaint_type,
-            'complaint_date': complaint_date,
-            'title': title,
-            'description': description
-        })
-        conn.commit()
-    return redirect(url_for('user.view_orders'))
+        'product_id': product_id,
+        'complaint_type': complaint_type,
+        'title': title,
+        'description': description
+    })
+    conn.commit()
+    return redirect(url_for('user.view_complaints'))
+
+@user_bp.route('/update_complaint_status', methods=['POST'])
+def update_complaint_status():
+    complaint_id = request.form['complaint_id']
+    action = request.form['action']
+    if action == 'confirm':
+        new_status = 'confirmed'
+    elif action == 'reject':
+        new_status = 'rejected'
+    elif action == 'process':
+        new_status = 'processing'
+    elif action == 'complete':
+        new_status = 'complete'
+    conn.execute(text("""
+        update complaints 
+        set status = :new_status 
+        where complaint_id = :complaint_id
+    """), {
+        'new_status': new_status,
+        'complaint_id': complaint_id
+    })
+    conn.commit()
+    return redirect(url_for('user.view_complaints'))

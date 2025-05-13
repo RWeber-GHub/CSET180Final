@@ -5,13 +5,51 @@ from db import engine, conn
 
 
 home_bp = Blueprint("home", __name__, static_folder="static", template_folder="templates")
-
+show_login_form = False
+show_signup_form = False
 @home_bp.route('/')
 def home():
-    session.pop('user_type', None)
-    session.pop('user_id', None)
-    users = conn.execute(text("select * from user")).fetchall()
-    return render_template('home.html', users=users)
+    ids = conn.execute(text("""
+        select p.product_id
+        from product p
+        left join product_images pi on p.product_id = pi.product_id
+        left join images i on pi.image_id = i.image_id
+        order by product_id desc 
+        limit 12
+    """)).fetchall()
+    ids = list(set(ids))
+    unique_ids = conn.execute(text("""
+        select p.product_id
+        from product p
+        left join product_images pi on p.product_id = pi.product_id
+        left join images i on pi.image_id = i.image_id
+        order by product_id desc 
+        limit 12
+    """)).fetchall()
+    id_count = []
+    for id in range(len(unique_ids)):
+        temp = ids.count(unique_ids[id])
+        id_count.append({
+            'product_id': unique_ids[id],
+            'count': temp
+            })
+    products = conn.execute(text("""
+        select p.product_id, p.title, p.price, i.image
+        from product p
+        left join product_images pi on p.product_id = pi.product_id
+        left join images i on pi.image_id = i.image_id
+        order by product_id desc 
+        limit 12
+    """)).fetchall()
+
+
+
+    try:
+        user_id = session['user_id']
+    except:
+        session.pop('user_type', None)
+        return render_template('home.html', products=products, id_count=id_count)
+    return render_template('home.html', show_login_form=True, products=products, id_count=id_count)
 
 @home_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -20,12 +58,12 @@ def login():
         password = request.form['password']
         result = conn.execute(text("select * from user where username = :username"), 
             {'username': username}).fetchone()
-        hashed_password = result[3]
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+        if result and bcrypt.checkpw(password.encode('utf-8'), result[3].encode('utf-8')):
             session['user_type'] = result[5]
             session['user_id'] = result[0]
             return redirect(url_for("user.user"))
-    return render_template('home.html')
+        flash("Invalid credentials, please try again.", "danger")
+    return render_template('home.html', show_login_form=True)
 
 @home_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -61,6 +99,5 @@ def signup():
                 session['user_type'] = user_type 
                 return redirect(url_for("user.user"))
         except Exception as e:
-            return render_template('home.html', error=str(e))
-    return render_template('userview.html')
-
+            flash(str(e), "danger")
+    return render_template('home.html', show_signup_form=True)

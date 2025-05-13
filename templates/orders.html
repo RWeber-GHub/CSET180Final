@@ -1,15 +1,16 @@
 {% extends 'base.html'%}
 {% block content %}
-<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
     <div class="container">
         <header>
             <div class="header-links">
                 <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
                 <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
             </div>
-            <h1 class="page-title">{{ type }} Orders</h1>
         </header>
+        <h1>{{ type }} Orders</h1>
+
         <div class="orders-section">
         {% if user_type == 'A' %}
             <h2>Pending Orders</h2>
@@ -84,37 +85,49 @@
 </body>
 
 <style>
+body {
+    background-color: #f4f2fa;
+    font-family: Arial, sans-serif;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
+
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
 }
+
 .header-links {
     display: flex;
     gap: 20px;
 }
+
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: #6e31a6;
+    color: #6a0dad;
     font-weight: bold;
+    padding-top: 20px;
     transition: color 0.3s ease;
 }
+
 .link:hover {
-    color: #51048c;
+    color: #ab67eb;
 }
-.page-title {
+
+h1 {
     font-size: 36px;
     font-weight: 700;
-    color: #6e31a6;
-    margin-bottom: 10px;
+    color: #6a0dad;
+    margin-bottom: 20px;
 }
+
 .orders-section {
     background-color: #6e31a6;
     border-radius: 16px;
@@ -122,31 +135,30 @@ header {
     padding: 30px;
     margin-bottom: 40px;
 }
+
 .orders-section h2 {
     font-size: 28px;
     font-weight: 600;
     color: #fff;
     margin-bottom: 20px;
 }
-a:visited {
-    color: white;
-}
+
 .products-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
+
 .product-card {
-    background: linear-gradient(145deg, #51048c, #6e31a6);
+    background-color: #fff;
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+    width: 100%;
     text-align: center;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .product-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
@@ -158,23 +170,28 @@ a:visited {
     margin-bottom: 10px;
     border-radius: 8px;
 }
+
 .product-info {
-    color: #fff;
+    color: #333;
 }
+
 .product-title {
     font-size: 16px;
     font-weight: 600;
     margin-top: 10px;
 }
+
 .user-orders {
     margin-bottom: 40px;
 }
+
 .user-name {
     font-size: 20px;
     font-weight: 700;
     color: #333;
     margin-bottom: 20px;
 }
+
 .order-card {
     background-color: #f9f9f9;
     border-radius: 12px;
@@ -182,10 +199,28 @@ a:visited {
     margin-bottom: 20px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
+
 .order-items {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
+}
+
+form input[type="submit"],
+form button {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #6a0dad;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+form input[type="submit"]:hover,
+form button:hover {
+    background-color: #ab67eb;
 }
 </style>
 {% endblock %}

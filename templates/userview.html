@@ -1,126 +1,149 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
-<body>
-    <div class="container">
-        <header>
-            <div class="header-links">
-                <a href="{{ url_for('home.home') }}" class="link">Home</a>
-                <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
-                <a href="{{ url_for('products.product_gallery') }}" class="link">Shop</a>
-                <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
-                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
-                <a href="{{ url_for('user.view_reviews') }}" class="link">Reviews</a>
-                <a href="{{ url_for('user.address') }}" class="link">Address</a>
-                {% if user_type in ['B', 'C'] %}
-                    <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
-                    <a href="{{ url_for('user.complaint') }}" class="link">Complaints</a>
-                {% endif %}
-            </div>
-            <h1 class="page-title">User Dashboard</h1>
-        </header>
-        <div class="details-section">
-            <h2>Your Details</h2>
-            <div class="products-container">
-                <div class="product-card">
-                    <div class="product-info">
-                        <label for="name">---Name---</label>
-                        <h3 class="product-title" id="name">{{ user.name }}</h3>
-                        <label for="username">---Username---</label>
-                        <h3 class="product-title" id="username">{{ user.username }}</h3>
-                        <label for="email">---Email---</label>
-                        <h3 class="product-title" id="email">{{ user.email }}</h3>
-                    </div>
+
+<div class="container">
+    <header>
+        <div class="header-links">
+            <a href="{{ url_for('home.home') }}" class="link">Home</a>
+            <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
+            <a href="{{ url_for('products.product_gallery') }}" class="link">Shop</a>
+            <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+            <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+            <a href="{{ url_for('user.view_reviews') }}" class="link">Reviews</a>
+            <a href="{{ url_for('user.address') }}" class="link">Address</a>
+            {% if user_type in ['B', 'C'] %}
+                <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
+                <a href="{{ url_for('user.complaint') }}" class="link">Complaints</a>
+            {% endif %}
+        </div>
+        <h1 class="page-title">User Dashboard</h1>
+    </header>
+
+    <div class="details-section">
+        <h2>Your Details</h2>
+        <div class="products-container">
+            <div class="product-card">
+                <div class="product-info">
+                    <label for="name">---Name---</label>
+                    <h3 class="product-title" id="name">{{ user.name }}</h3>
+                    <label for="username">---Username---</label>
+                    <h3 class="product-title" id="username">{{ user.username }}</h3>
+                    <label for="email">---Email---</label>
+                    <h3 class="product-title" id="email">{{ user.email }}</h3>
                 </div>
             </div>
         </div>
     </div>
+
     {% if e %}
-            <h1>{{  e  }}</h1>
+        <h1>{{ e }}</h1>
     {% endif %}
-</body>
+</div>
+
 <style>
+body {
+    background-color: #f4f2fa;
+    font-family: Arial, sans-serif
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
+
 header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
     margin-bottom: 40px;
 }
+
 .header-links {
     display: flex;
     gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 10px;
 }
+
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: #6e31a6;
+    color: #6a0dad;
     font-weight: bold;
     transition: color 0.3s ease;
+    padding: 10px;
 }
+
 .link:hover {
-    color: #51048c;
+    color: #ab67eb;
 }
-a:visited {
-    color: white;
-}
+
 .page-title {
     font-size: 36px;
     font-weight: 700;
-    color: #6e31a6;
-    margin-bottom: 10px;
+    color: #6a0dad;
+    margin-top: 10px;
 }
+
 .details-section {
-    background-color: #6e31a6;
+    background-color: #fff;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     padding: 30px;
     margin-bottom: 40px;
 }
+
 .details-section h2 {
     font-size: 28px;
     font-weight: 600;
-    color: #fff;
+    color: #6a0dad;
     margin-bottom: 20px;
+    text-align: center;
 }
+
 .products-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    display: flex;
+    justify-content: center;
 }
+
 .product-card {
-    background: #51048c;
+    background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    width: 100%;
+    max-width: 500px;
     text-align: center;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .product-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
 }
-.product-image {
-    width: 100px;
-    height: 100px;
-    object-fit: contain;
-    margin-bottom: 10px;
-    border-radius: 8px;
-}
+
 .product-info {
-    color: #fff;
+    color: #333;
 }
+
+.product-info label {
+    font-weight: bold;
+    display: block;
+     margin-top: 10px;
+    color: #6a0dad;
+}
+
 .product-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+h1 {
+    text-align: center;
+    color: #e53935;
 }
 </style>
 {% endblock %}

@@ -1,239 +1,253 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
 <body>
-    <div class="container">
-        <header>
-            <div class="header-links">
-                <a href="{{ url_for('home.home') }}" class="link">Home</a>
-                <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
-                <a href="{{ url_for('user.view_products') }}" class="link">Shop</a>
-                <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
-                <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
-            </div>
-        </header>
-        {% if user_type == 'A' %}
-            <div class="products-container">
+<div class="container">
+    <header>
+        <div class="header-links">
+            <a href="{{ url_for('home.home') }}" class="link">Home</a>
+            <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
+            <a href="{{ url_for('user.view_products') }}" class="link">Shop</a>
+            <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
+            <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+        </div>
+    </header>
+
+    {% if user_type == 'A' %}
+        <h2>Submit Complaint</h2>
+        <div class="products-container">
+            {% for product in products %}
                 <div class="product-card">
-                {% for product in products %}
                     <div class="product-info">
                         <h3>{{ product.title }}</h3>
-                        <img src="{{  product.image  }}" alt="">
+                        <img src="{{ product.image }}" alt="{{ product.title }}" class="product-image">
                         <p>{{ product.description }}</p>
-                        <p>${{ product.price}}</p>
+                        <p>${{ product.price }}</p>
                     </div>
-                <form method="POST" action="{{ url_for('user.post_complaint') }}">
-                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
-                    {% if complaints %}
-                        {% for complaint in complaints%}
-                            <input type="text" name="title" placeholder="Complaint Title: " value="{{ complaint.title }}">
-                            <textarea name="description" placeholder="Enter your message here">{{ complaint.description }}</textarea>
-                        {% endfor %}
-                    {% endif %}
-                    {% if not complaints %}
-                        <input type="text" name="title" placeholder="Complaint Title: ">
-                        <textarea name="description" placeholder="Enter your message here"></textarea>
-                    {% endif %}
-                    {% if complaints %}
-                        {% for complaint in complaints%}
-                            <label class="radio">
-                                {% if complaint.complaint_type == 'return' %}
-                                    <input type="radio" name="complaint" value="return" checked>
-                                {% else %}
-                                    <input type="radio" name="complaint" value="return">
-                                {% endif %}
-                                <span class="mark"></span>
-                                Return
-                            </label>
-                            <label class="radio">
-                                {% if complaint.complaint_type == 'refund' %}
-                                    <input type="radio" name="complaint" value="refund" checked>
-                                {% else %}
-                                    <input type="radio" name="complaint" value="refund">
-                                {% endif %}
-                                <span class="mark"></span>
-                                Refund
-                            </label>
-                            <label class="radio">
-                                {% if complaint.complaint_type == 'warranty' %}
-                                    <input type="radio" name="complaint" value="warranty" checked>
-                                {% else %}
-                                    <input type="radio" name="complaint" value="warranty">
-                                {% endif %}
-                                <span class="mark"></span>
-                                Warranty
-                            </label>
-                        {% endfor %}
+
+                    <form method="POST" action="{{ url_for('user.post_complaint') }}">
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+
+                        {% if complaints %}
+                            {% for complaint in complaints %}
+                                <input type="text" name="title" placeholder="Complaint Title" value="{{ complaint.title }}">
+                                <textarea name="description">{{ complaint.description }}</textarea>
+                            {% endfor %}
+                        {% else %}
+                            <input type="text" name="title" placeholder="Complaint Title">
+                            <textarea name="description" placeholder="Enter your message here"></textarea>
                         {% endif %}
-                        {% if not complaints %}
+
+                        <div class="complaint-types">
                             <label class="radio">
                                 <input type="radio" name="complaint" value="return">
-                                <span class="mark"></span>
-                                Return
+                                <span class="mark"></span>Return
                             </label>
                             <label class="radio">
                                 <input type="radio" name="complaint" value="refund">
-                                <span class="mark"></span>
-                                Refund
+                                <span class="mark"></span>Refund
                             </label>
                             <label class="radio">
                                 <input type="radio" name="complaint" value="warranty">
-                                <span class="mark"></span>
-                                Warrenty
+                                <span class="mark"></span>Warranty
                             </label>
-                        {% endif %}
-                    {% endfor %}
-                    <input type="submit" value="Send">
-                </form>
-            </div>
+                        </div>
+
+                        <input type="submit" value="Send">
+                    </form>
+                </div>
+            {% endfor %}
         </div>
-        {% endif %}
-        {% if user_type == 'B' %}
+    {% endif %}
+
+    {% if user_type == 'B' %}
+        <h2>Customer Complaints</h2>
         <div class="products-container">
-            <div class="product-card">
-                {% for complaint in complaints %}
+            {% for complaint in complaints %}
                 <div class="product-card">
                     <div class="product-info">
                         <h3>Title: {{ complaint.title }}</h3>
-                        <p><strong>Username: {{ complaint.username }}</strong></p>
-                        <p><strong>Description: {{ complaint.description }}</strong></p>
-                        <p><strong>Product Name: {{ complaint.product_title }}</strong></p>
-                        <img src="{{ complaint.product_image }}" class="product-image" alt="">
-                        {% if complaint.complaint_type == 'return' %}
-                            <p><strong>Complaint Type: Return</strong></p>
-                        {% endif %}
-                        {% if complaint.complaint_type == 'refund' %}
-                            <p><strong>Complaint Type: Refund</strong></p>
-                        {% endif %}
-                        {% if complaint.complaint_type == 'warranty' %}
-                            <p><strong>Complaint Type: Warranty</strong></p>
-                        {% endif %}
+                        <p><strong>User:</strong> {{ complaint.user_name }}</p>
+                        <p><strong>Product:</strong> {{ complaint.product_title }}</p>
+                        <p><strong>Description:</strong> {{ complaint.description }}</p>
+                        <p>Status: <span class="status-{{ complaint.status }}">{{ complaint.status }}</span></p>
                     </div>
+
+                    <form method="POST" action="{{ url_for('user.update_complaint_status') }}">
+                        <input type="hidden" name="complaint_id" value="{{ complaint.complaint_id }}">
+
+                        {% if complaint.status == 'pending' %}
+                            <button name="action" value="confirm">Confirm</button>
+                            <button name="action" value="reject">Reject</button>
+                        {% elif complaint.status == 'confirmed' %}
+                            <button name="action" value="process">Start Processing</button>
+                        {% elif complaint.status == 'processing' %}
+                            <button name="action" value="complete">Mark as Complete</button>
+                        {% endif %}
+                    </form>
                 </div>
             {% endfor %}
-            </div>
         </div>
-        {% endif %}
-    </div>
-</body>
+    {% endif %}
+</div>
+
 <style>
-.radio {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  font-family: sans-serif;
-  margin-right: 20px;
-  position: relative;
-  font-size: 16px;
+body {
+    background-color: #f4f2fa;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
-.radio input[type="radio"] {
-  display: none;
-}
-
-.mark {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ccc, #eee);
-  margin-right: 10px;
-  position: relative;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.radio input[type="radio"]:checked + .mark {
-  background: linear-gradient(135deg, #6e31a6, #51048c);
-  box-shadow: 0 0 0 3px rgba(229, 46, 113, 0.3);
-}
-
-.radio input[type="radio"]:checked + .mark::after {
-  content: "";
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 10px;
-  height: 10px;
-  background-color: white;
-  border-radius: 50%;
-}
-textarea {
-  border: none;
-  background-color: #6e31a6;
-  resize: none;
-  width: 300px;
-  height: 100px;
-  margin: 0;
-}
-textarea:focus {
-  background-color: #51048c;
-}
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
 }
+
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 40px;
 }
+
 .header-links {
     display: flex;
     gap: 20px;
 }
+
 .link {
     text-decoration: none;
     font-size: 16px;
-    color: #6e31a6;
+    color: #6a0dad;
     font-weight: bold;
+    padding-top: 20px;
     transition: color 0.3s ease;
 }
+
 .link:hover {
-    color: #51048c;
+    color: #ab67eb;
 }
-a:visited {
-    color: white;
-}
-.page-title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #6e31a6;
-    margin-bottom: 10px;
-}
+
 .products-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    padding: 2rem 0;
 }
+
 .product-card {
-    background: #6e31a6;
+    background-color: #fff;
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    width: 300px;
+    text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    width: 100%;
-    height: 100%;
+    gap: 1rem;
 }
+
+.product-info {
+    color: #333;
+}
+
 .product-image {
     width: 100px;
     height: 100px;
     object-fit: contain;
-    margin-bottom: 10px;
+    margin: 0 auto 10px;
     border-radius: 8px;
 }
-.product-info {
-    color: #fff;
+
+textarea {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    resize: none;
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    border-radius: 8px;
 }
-.product-title {
-    font-size: 16px;
-    font-weight: 600;
+
+textarea:focus {
+    background-color: #f4f2fa;
+    outline: none;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.radio {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    margin-right: 20px;
+    font-size: 14px;
+}
+
+.radio input[type="radio"] {
+    display: none;
+}
+
+.mark {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ccc, #eee);
+    margin-right: 8px;
+    position: relative;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.radio input[type="radio"]:checked + .mark {
+    background: linear-gradient(135deg, #6a0dad, #51048c);
+    box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.3);
+}
+
+.radio input[type="radio"]:checked + .mark::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    border-radius: 50%;
+}
+
+button, input[type="submit"] {
     margin-top: 10px;
+    background-color: #6a0dad;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
 }
+
+button:hover, input[type="submit"]:hover {
+    background-color: #ab67eb;
+}
+
+.status-pending { color: orange; font-weight: bold; }
+.status-confirmed { color: blue; font-weight: bold; }
+.status-processing { color: purple; font-weight: bold; }
+.status-complete { color: green; font-weight: bold; }
+.status-rejected { color: red; font-weight: bold; }
 </style>
+</body>
 {% endblock %}

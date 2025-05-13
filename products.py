@@ -5,6 +5,7 @@ from db import engine, conn
 from datetime import date, datetime
 import os
 import json
+import re
 
 products_bp = Blueprint('products', __name__, url_prefix='/products')
 
@@ -29,10 +30,11 @@ def create_product():
         variant_data = defaultdict(dict)
         for key, value in request.form.items():
             if key.startswith('variants'):
-                parts = key.split('[]')
-                idx = parts[1][:-1]
-                field = parts[2][:-1]
-                variant_data[idx][field] = value
+                parts = key.split('[')
+                if len(parts) >= 3:
+                    idx = parts[1].strip(']')
+                    field = parts[2].strip(']')
+                    variant_data[idx][field] = value
 
         variants = list(variant_data.values())
 
@@ -124,7 +126,7 @@ def create_product():
     with engine.connect() as conn:
         sizes = conn.execute(text("SELECT size_id, size FROM sizes")).fetchall()
     return render_template('all_products.html', sizes=sizes)
-
+    
 
 
 @products_bp.route('/gallery')
@@ -154,7 +156,6 @@ def product_gallery():
         """)
         discount_results = conn.execute(discount_query)
 
-        # User-specific product query
         if user_type == 'B':
             query = text("""
                 SELECT 
