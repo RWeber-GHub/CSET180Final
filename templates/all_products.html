@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<link rel="icon" type="image/x-icon" href="static/images/browser_logo.png">
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/browser_logo.png') }}">
+
 <div class="container">
     <header>
         <div class="header-links">
@@ -11,38 +12,38 @@
             <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
         </div>
     </header>
+
     <h1>Marketplace</h1>
 
-    <form method="GET" action="{{ url_for('user.view_products') }}" class="search-sort-form" style="margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
-        <input type="text" name="query" placeholder="Search products..." value="{{ request.args.get('query', '') }}" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc; flex-grow: 1; min-width: 200px;">
-    
-        <select name="size" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc;">
+    <!-- Search and Filters -->
+    <form method="GET" action="{{ url_for('user.view_products') }}" class="search-sort-form">
+        <input type="text" name="query" placeholder="Search products..." value="{{ request.args.get('query', '') }}">
+        
+        <select name="size">
             <option value="">All Sizes</option>
             {% for size in all_sizes %}
             <option value="{{ size }}" {% if request.args.get('size') == size %}selected{% endif %}>{{ size }}</option>
             {% endfor %}
         </select>
-    
-        <select name="in_stock" style="padding: 0.5rem; border-radius: 10px; border: 1px solid #ccc;">
+
+        <select name="in_stock">
             <option value="">Stock Status</option>
             <option value="1" {% if request.args.get('in_stock') == '1' %}selected{% endif %}>In Stock Only</option>
         </select>
-    
+
         <input type="submit" value="Apply" class="submit-btn">
     </form>
 
+    <!-- Product List -->
     <div class="product-gallery">
         {% for product in products %}
         <div class="product-card" data-product-id="{{ product.product_id }}">
             <div class="product-images">
                 {% if product.images %}
-                <div id="carousel-{{ product.product_id }}" class="carousel">
-                    <img src="{{ url_for('static', filename=product.images[0].replace('static\\', '').replace('\\', '/')) }}"
-                        id="carousel-img-{{ product.product_id }}">
+                <div class="carousel" id="carousel-{{ product.product_id }}">
+                    <img src="{{ url_for('static', filename=product.images[0].replace('static\\', '').replace('\\', '/')) }}" id="carousel-img-{{ product.product_id }}">
                     {% if product.images|length > 1 %}
-                    <button class="next-btn" data-product-id="{{ product.product_id }}" data-images='[{% for img in product.images %}"{{ img.replace("static\\", "").replace("\\", "/") }}"{% if not loop.last %},{% endif %}{% endfor %}]'>
-                        Next
-                    </button>
+                    <button class="next-btn" data-product-id="{{ product.product_id }}" data-images='[{% for img in product.images %}"{{ img.replace("static\\", "").replace("\\", "/") }}"{% if not loop.last %},{% endif %}{% endfor %}]'>Next</button>
                     {% endif %}
                 </div>
                 {% else %}
@@ -52,25 +53,24 @@
 
             <h3>{{ product.title }}</h3>
             <p>{{ product.description }}</p>
+
             <div class="price-section">
                 {% if product.discount %}
-                    <div class="discount-badge">
-                        -{{ product.discount.discount_amount }}%
-                    </div>
-                    <p>
-                        <strong>Price:</strong>
+                    <div class="discount-badge">-{{ product.discount.discount_amount }}%</div>
+                    <p class="price-display">
                         <span class="original-price">${{ "%.2f"|format(product.price) }}</span>
-                        <br>
-                        <span class="discounted-price">
-                            ${{ "%.2f"|format(product.price * (1 - product.discount.discount_amount / 100)) }}
-                        </span>
+                        <span class="discounted-price">${{ "%.2f"|format(product.price * (1 - product.discount.discount_amount / 100)) }}</span>
                     </p>
                 {% else %}
-                    <p>${{ "%.2f"|format(product.price) }}</p>
+                    <p class="price-display">
+                        <span class="current-price" id="price-{{ product.product_id }}">${{ "%.2f"|format(product.price) }}</span>
+                    </p>
                 {% endif %}
             </div>
+
             <p><strong>Warranty:</strong> {{ product.warranty }}</p>
 
+            <!-- Add to Cart Form -->
             <form method="POST" action="{{ url_for('user.add_to_cart') }}" onsubmit="return validateVariant({{ product.product_id }})">
                 <input type="hidden" name="product_id" value="{{ product.product_id }}">
                 <input type="hidden" name="color" class="color-input">
@@ -81,8 +81,7 @@
                     <div class="color-options">
                         {% for color in product.colors %}
                         <div class="color-circle" title="{{ color }}" data-color="{{ color }}" data-product-id="{{ product.product_id }}"
-                            style="background-color: {{ color }};">
-                        </div>
+                             style="background-color: {{ color }};"></div>
                         {% endfor %}
                     </div>
                 </div>
@@ -91,7 +90,7 @@
                 {% if product.sizes %}
                 <div class="product-sizes">
                     <strong>Sizes:</strong>
-                    <select name="size" class="size-select" data-product-id="{{ product.product_id }}">
+                    <select name="size" class="size-select" id="size-select-{{ product.product_id }}" data-product-id="{{ product.product_id }}">
                         {% for size in product.sizes %}
                         <option value="{{ size }}">{{ size }}</option>
                         {% endfor %}
@@ -107,29 +106,19 @@
                 <button>Edit Product</button>
             </a>
 
-            <a href="{{ url_for('products.add_discount', product_id=product.product_id) }}"></a>
-
-            <script>
-                window["variants_{{ product.product_id }}"] = {{ product.variants}};
-            </script>
             <button type="button" onclick="toggleDiscountForm({{ product.product_id }})">Add Discount</button>
 
             <form method="POST" action="{{ url_for('products.add_discount', product_id=product.product_id) }}" 
-                  class="discount-form" id="discount-form-{{ product.product_id }}" style="display: none; margin-top: 1rem;">
-                <label>
-                    Amount (%):
-                    <input type="number" name="discount_amount" min="1" max="100" required>
-                </label><br>
-                <label>
-                    Start Date:
-                    <input type="date" name="discount_start" required>
-                </label><br>
-                <label>
-                    End Date:
-                    <input type="date" name="discount_end" required>
-                </label><br>
+                  class="discount-form" id="discount-form-{{ product.product_id }}" style="display: none;">
+                <label>Amount (%): <input type="number" name="discount_amount" min="1" max="100" required></label><br>
+                <label>Start Date: <input type="date" name="discount_start" required></label><br>
+                <label>End Date: <input type="date" name="discount_end" required></label><br>
                 <input type="submit" value="Apply Discount" class="submit-btn">
             </form>
+
+            <script>
+                window["variants_{{ product.product_id }}"] = JSON.parse('{{ product.variants_json | safe }}');
+            </script>
         </div>
         {% endfor %}
     </div>
@@ -140,38 +129,54 @@
         background-color: #f4f2fa;
         font-family: Arial, sans-serif;
     }
-    
+
     .container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 20px;
     }
-    
+
     header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 40px;
     }
-    
+
     .header-links {
         display: flex;
         gap: 20px;
     }
-    
+
     .link {
         text-decoration: none;
         font-size: 16px;
         color: #6a0dad;
         font-weight: bold;
-        transition: color 0.3s ease;
         padding-top: 20px;
+        transition: color 0.3s ease;
     }
-    
+
     .link:hover {
         color: #ab67eb;
     }
-    
+
+    .search-sort-form {
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .search-sort-form input[type="text"],
+    .search-sort-form select {
+        padding: 0.5rem;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        min-width: 200px;
+    }
+
     .product-gallery {
         display: flex;
         flex-wrap: wrap;
@@ -179,68 +184,62 @@
         justify-content: center;
         padding: 2rem;
     }
-    
+
     .product-card {
-        background-color: #ffffff;
+        background-color: #fff;
         border-radius: 16px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         padding: 1rem;
         width: 300px;
         text-align: center;
     }
-    
+
     .product-images img {
         width: 100%;
         height: auto;
         border-radius: 12px;
     }
-    
+
     .carousel {
         position: relative;
     }
-    
+
     .next-btn {
         position: absolute;
         right: 5px;
         bottom: 5px;
         padding: 5px 10px;
-        border: none;
         background-color: #6a0dad;
         color: white;
+        border: none;
         border-radius: 10px;
         cursor: pointer;
     }
-    
+
     .color-options {
         display: flex;
         gap: 0.5rem;
         justify-content: center;
         margin-top: 0.25rem;
     }
-    
+
     .color-circle {
         width: 24px;
         height: 24px;
         border-radius: 50%;
-        border: 2px solid #333;
+        border: 2px solid #ccc;
         cursor: pointer;
         transition: transform 0.2s ease;
     }
-    
+
     .color-circle:hover {
         transform: scale(1.1);
     }
-    
+
     .color-circle.selected {
-        border: 3px solid #6a0dad;
+        border: 3px solid #000;
     }
-    
-    select {
-        padding: 0.25rem;
-        border-radius: 10px;
-        border: 1px solid #ccc;
-    }
-    
+
     input[type="submit"], button {
         margin-top: 0.5rem;
         padding: 0.5rem 1rem;
@@ -250,123 +249,222 @@
         border-radius: 10px;
         cursor: pointer;
     }
-    
+
     input[type="submit"]:hover, button:hover {
         background-color: #5a0cab;
     }
-    </style>
+
+    .size-select option:disabled {
+    color: #ccc;
+    background-color: #f8f8f8;
+}
+
+.size-select option {
+    color: #000;
+}
+
+.unavailable-option {
+    color: #999;
+    text-decoration: line-through;
+}
+.price-section {
+    position: relative;
+    margin: 1rem 0;
+}
+
+.discount-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #e53935;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+.price-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.discounted-price {
+    color: #e53935;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.current-price {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+</style>
 
 <script>
-    function toggleDiscountForm(productId) {
-        const form = document.getElementById(discount-form-${productId});
-        form.style.display = form.style.display === "none" ? "block" : "none";
-    }
-    
-    document.addEventListener('DOMContentLoaded', function () {
-        function updateSizeOptions(productId, selectedColor) {
-            const variants = window["variants_" + productId];
-            const sizeSelect = document.querySelector(.size-select[data-product-id="${productId}"]);
-            const priceElem = document.querySelector(.product-card[data-product-id="${productId}"] .price-section);
-            const quantityInput = document.querySelector(.product-card[data-product-id="${productId}"] input[name="quantity"]);
-    
-            Array.from(sizeSelect.options).forEach(option => {
-                const valid = variants.some(v => v.color === selectedColor && v.size === option.value);
-                option.disabled = !valid;
-            });
-    
-            const selectedSize = sizeSelect.value;
-            updatePriceAndStock(productId, selectedColor, selectedSize);
-        }
-    
-        function updatePriceAndStock(productId, color, size) {
-            const variants = window["variants_" + productId];
-            const variant = variants.find(v => v.color === color && v.size === size);
-            const productCard = document.querySelector(.product-card[data-product-id="${productId}"]);
-            const priceSection = productCard.querySelector(".price-section");
-            const quantityInput = productCard.querySelector(input[name="quantity"]);
-    
-            if (!variant) return;
-    
-            const basePrice = parseFloat(variant.price);
-            const discount = variant.discount || null;
-    
-            let html = '';
-    
-            if (discount) {
-                const discounted = basePrice * (1 - discount.discount_amount / 100);
-                html += <div class="discount-badge">-${discount.discount_amount}%</div>;
-                html += <p><strong>Price:</strong> <span class="original-price">$${basePrice.toFixed(2)}</span><br>;
-                html += <span class="discounted-price">$${discounted.toFixed(2)}</span></p>;
-            } else {
-                html += <p>$${basePrice.toFixed(2)}</p>;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize all product cards with their variants
+        document.querySelectorAll('.product-card').forEach(card => {
+            const productId = card.dataset.productId;
+            let variants = [];
+            
+            try {
+                variants = window[`variants_${productId}`] || [];
+                if (!Array.isArray(variants)) variants = [];
+            } catch (e) {
+                console.error(`Error loading variants for product ${productId}:`, e);
+                variants = [];
             }
-    
-            html += <p><strong>Warranty:</strong> ${variant.warranty || 'N/A'}</p>;
-    
-            priceSection.innerHTML = html;
-    
-            if (quantityInput) {
-                quantityInput.max = variant.stock;
-            }
-        }
-    
-        function getSelectedColor(productId) {
-            const circle = document.querySelector(.color-circle.selected[data-product-id="${productId}"]);
-            return circle ? circle.dataset.color : null;
-        }
-    
-        window.validateVariant = function(productId) {
-            const color = getSelectedColor(productId);
-            const sizeSelect = document.querySelector(.size-select[data-product-id="${productId}"]);
-            const size = sizeSelect ? sizeSelect.value : null;
-            const variants = window["variants_" + productId];
-    
-            const valid = variants.some(v => v.color === color && v.size === size);
-            if (!valid) {
-                alert("Invalid color/size combination.");
-                return false;
-            }
-            return true;
-        };
-    
-        document.querySelectorAll('.color-circle').forEach(circle => {
-            circle.addEventListener('click', function () {
-                const color = this.dataset.color;
-                const productId = this.dataset.productId;
-    
-                document.querySelectorAll(.color-circle[data-product-id="${productId}"]).forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-    
-                const colorInput = this.closest('form').querySelector(input.color-input[name="color"]);
-                if (colorInput) {
-                    colorInput.value = color;
+            
+            // Get all unique colors for this product
+            const colors = [...new Set(variants.map(v => v.color))];
+            
+            // Select first color by default if available
+            if (colors.length > 0) {
+                const firstColor = colors[0];
+                const colorCircle = card.querySelector(`.color-circle[data-color="${firstColor}"]`);
+                if (colorCircle) {
+                    colorCircle.classList.add('selected');
+                    card.querySelector('.color-input').value = firstColor;
+                    updateSizeOptions(productId, firstColor);
                 }
-    
+            }
+        });
+
+        // Color selection handler
+        document.querySelectorAll('.color-circle').forEach(circle => {
+            circle.addEventListener('click', function() {
+                const productId = this.dataset.productId;
+                const color = this.dataset.color;
+                
+                // Update selected color
+                document.querySelectorAll(`.color-circle[data-product-id="${productId}"]`)
+                    .forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                document.querySelector(`.product-card[data-product-id="${productId}"] .color-input`).value = color;
+                
+                // Update size options for selected color
                 updateSizeOptions(productId, color);
             });
         });
-    
+
+        // Size selection handler
         document.querySelectorAll('.size-select').forEach(select => {
-            select.addEventListener('change', function () {
+            select.addEventListener('change', function() {
                 const productId = this.dataset.productId;
-                const selectedColor = getSelectedColor(productId);
-                const selectedSize = this.value;
-    
-                updatePriceAndStock(productId, selectedColor, selectedSize);
-            });
-        });
-    
-        document.querySelectorAll('.next-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const productId = btn.dataset.productId;
-                const images = JSON.parse(btn.dataset.images);
-                const img = document.getElementById('carousel-img-' + productId);
-                const currentSrc = img.src.split('/static/')[1];
-                const nextIndex = (images.indexOf(currentSrc) + 1) % images.length;
-                img.src = /static/${images[nextIndex]};
+                const selectedColor = document.querySelector(`.color-circle[data-product-id="${productId}"].selected`)?.dataset.color;
+                if (selectedColor) {
+                    updatePriceDisplay(productId, selectedColor, this.value);
+                }
             });
         });
     });
-    </script>
-    
+
+    function updateSizeOptions(productId, color) {
+        let variants = [];
+        try {
+            variants = window[`variants_${productId}`] || [];
+            if (!Array.isArray(variants)) variants = [];
+        } catch (e) {
+            console.error(`Error loading variants for product ${productId}:`, e);
+            variants = [];
+        }
+        
+        const sizeSelect = document.querySelector(`#size-select-${productId}`);
+        if (!sizeSelect) return;
+        
+        // Filter variants for selected color
+        const colorVariants = variants.filter(v => v.color === color);
+        
+        // Get current selection before clearing
+        const currentSize = sizeSelect.value;
+        let currentSizeStillAvailable = false;
+        
+        // Clear existing options
+        sizeSelect.innerHTML = '';
+        
+        // Get unique sizes for this color
+        const sizeMap = {};
+        colorVariants.forEach(variant => {
+            if (!sizeMap[variant.size]) {
+                sizeMap[variant.size] = {
+                    stock: variant.stock,
+                    price: variant.price
+                };
+            }
+        });
+        
+        // Add size options
+        Object.entries(sizeMap).forEach(([size, data]) => {
+            const option = document.createElement('option');
+            option.value = size;
+            option.textContent = size;
+            
+            if (data.stock <= 0) {
+                option.disabled = true;
+                option.classList.add('unavailable-option');
+                option.textContent += ' (Out of Stock)';
+            } else if (size === currentSize) {
+                currentSizeStillAvailable = true;
+            }
+            
+            sizeSelect.appendChild(option);
+        });
+        
+        // Restore selection if still available, otherwise select first available
+        if (currentSizeStillAvailable) {
+            sizeSelect.value = currentSize;
+        } else {
+            const firstAvailable = Object.entries(sizeMap).find(([_, data]) => data.stock > 0);
+            if (firstAvailable) {
+                sizeSelect.value = firstAvailable[0];
+            }
+        }
+        
+        // Update price display
+        updatePriceDisplay(productId, color, sizeSelect.value);
+    }
+
+    function updatePriceDisplay(productId, color, size) {
+        let variants = [];
+        try {
+            variants = window[`variants_${productId}`] || [];
+            if (!Array.isArray(variants)) variants = [];
+        } catch (e) {
+            console.error(`Error loading variants for product ${productId}:`, e);
+            variants = [];
+        }
+        
+        const variant = variants.find(v => v.color === color && v.size === size);
+        if (!variant) return;
+        
+        const price = variant.price.toFixed(2);
+        const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+        
+        if (card.querySelector('.discount-badge')) {
+            const discount = parseFloat(card.querySelector('.discount-badge').textContent.replace('-', '').replace('%', ''));
+            const discountedPrice = (variant.price * (1 - discount/100)).toFixed(2);
+            card.querySelector('.original-price').textContent = `$${price}`;
+            card.querySelector('.discounted-price').textContent = `$${discountedPrice}`;
+        } else {
+            const priceSpan = card.querySelector(`#price-${productId}`);
+            if (priceSpan) priceSpan.textContent = `$${price}`;
+        }
+    }
+
+    // [Keep the validateVariant and toggleDiscountForm functions the same]
+</script>
 {% endblock %}

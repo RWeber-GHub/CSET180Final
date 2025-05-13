@@ -126,12 +126,35 @@ def create_product():
     return render_template('all_products.html', sizes=sizes)
 
 
+
 @products_bp.route('/gallery')
 def product_gallery():
     user_id = session['user_id']
     user_type = session['user_type']
+    today = date.today()
 
     with engine.connect() as conn:
+        # Common queries for all users
+        variant_query = text("""
+            SELECT 
+                pv.product_id,
+                c.color, c.color_id,
+                s.size, s.size_id,
+                pv.variant_stock,
+                pv.price
+            FROM product_variants pv
+            JOIN colors c ON pv.color_id = c.color_id
+            JOIN sizes s ON pv.size_id = s.size_id
+        """)
+        variant_results = conn.execute(variant_query)
+        
+        discount_query = text("""
+            SELECT product_id, discount_amount, discount_start, discount_end
+            FROM discounts
+        """)
+        discount_results = conn.execute(discount_query)
+
+        # User-specific product query
         if user_type == 'B':
             query = text("""
                 SELECT 
@@ -149,7 +172,7 @@ def product_gallery():
                 WHERE p.user_id = :user_id
                 GROUP BY p.product_id
             """)
-            results = conn.execute(query, {'user_id': user_id}).fetchall()
+            results = conn.execute(query, {'user_id': user_id})
         else:
             query = text("""
                 SELECT 
@@ -166,88 +189,80 @@ def product_gallery():
                 LEFT JOIN sizes s ON ps.size_id = s.size_id
                 GROUP BY p.product_id
             """)
-            results = conn.execute(query).fetchall()
+            results = conn.execute(query)
 
-            variant_query = text("""
-            SELECT pv.product_id, c.color, s.size, pv.variant_stock, pv.price
-            FROM product_variants pv
-            JOIN colors c ON pv.color_id = c.color_id
-            JOIN sizes s ON pv.size_id = s.size_id
-        """)
-        variant_results = conn.execute(variant_query).fetchall()
+        def row_to_dict(row):
+            return {key: value for key, value in row._mapping.items()}
 
-        discount_query = text("""
-            SELECT product_id, discount_amount, discount_start, discount_end
-            FROM discounts
-        """)
-        discount_results = conn.execute(discount_query).fetchall()
+        product_variants_map = {}
+        for row in variant_results:
+            row_dict = row_to_dict(row)
+            pid = row_dict['product_id']
+            variant = {
+                'color': row_dict['color'],
+                'color_id': row_dict['color_id'],
+                'size': row_dict['size'],
+                'size_id': row_dict['size_id'],
+                'stock': row_dict['variant_stock'],
+                'price': float(row_dict['price']) if row_dict['price'] is not None else None
+            }
+            if variant['price'] is not None:
+                product_variants_map.setdefault(pid, []).append(variant)
 
-    print("Variant results:")
-    for row in variant_results:
-        print(dict(row))
-    import sys
-    sys.stdout.flush()
+        discounts_map = {}
+        for row in discount_results:
+            row_dict = row_to_dict(row)
+            try:
+                discount_start = (row_dict['discount_start'] 
+                                 if isinstance(row_dict['discount_start'], date) 
+                                 else datetime.strptime(str(row_dict['discount_start']), '%Y-%m-%d').date())
+                discount_end = (row_dict['discount_end'] 
+                               if isinstance(row_dict['discount_end'], date) 
+                               else datetime.strptime(str(row_dict['discount_end']), '%Y-%m-%d').date())
+                
+                d = {
+                    'discount_amount': row_dict['discount_amount'],
+                    'discount_start': discount_start,
+                    'discount_end': discount_end
+                }
+                discounts_map.setdefault(row_dict['product_id'], []).append(d)
+            except Exception as e:
+                print(f"Error processing discount for product {row_dict['product_id']}: {e}")
+                continue
 
-    product_variants_map = {}
-    for row in variant_results:
-        pid = row.product_id
-        variant = {
-            'color': row.color,
-            'size': row.size,
-            'stock': row.variant_stock,
-            'price': float(row.price)
-        }
-        product_variants_map.setdefault(pid, []).append(variant)
-
-    discounts_map = {}
-    for row in discount_results:
-        d = {
-            'discount_amount': row.discount_amount,
-            'discount_start': row.discount_start,
-            'discount_end': row.discount_end
-        }
-        discounts_map.setdefault(row.product_id, []).append(d)
-
-    products = []
-
-    
-
+        products = []
     for row in results:
-        product_id = row.product_id
-        variants = product_variants_map.get(product_id) or []
-        filtered_variants = [
-            v for v in variants if v['color'] and v['size'] and v['price'] is not None
-        ]
+        row_dict = row_to_dict(row)
+        product_id = row_dict['product_id']
+        variants = product_variants_map.get(product_id, [])
         
-        print("Product Variant Map:")
-        for k, v in product_variants_map.items():
-            print(f"Product ID: {k}, Variants: {v}")
-
+        unique_sizes = list({v['size'] for v in variants})
+        unique_colors = list({v['color'] for v in variants})
+        
+        active_discount = None
+        for discount in discounts_map.get(product_id, []):
+            if discount['discount_start'] <= today <= discount['discount_end']:
+                active_discount = discount
+                break
+        
         products.append({
             'product_id': product_id,
-            'title': row.title,
-            'description': row.description,
-            'price': row.price,
-            'stock': row.stock,
-            'warranty': row.warranty,
-            'images': row.images.split(',') if row.images else [],
-            'colors': row.colors.split(',') if row.colors else [],
-            'sizes': row.sizes.split(',') if row.sizes else [],
-            'variants': filtered_variants,
-            'discounts': discounts_map.get(product_id, [])
-        })
+            'title': row_dict['title'],
+            'description': row_dict['description'],
+            'price': float(row_dict['price']) if row_dict['price'] is not None else 0,
+            'stock': row_dict['stock'],
+            'warranty': row_dict['warranty'],
+            'images': row_dict['images'].split(',') if row_dict['images'] else [],
+            'colors': unique_colors, 
+            'sizes': unique_sizes,    
+            'variants': variants,
+            'discount': active_discount,
+            'variants_json': json.dumps(variants)
+            })
 
-    for product in products:
-        active_discount = next(
-            (d for d in product['discounts']
-             if d['discount_start'] <= date.today() <= d['discount_end']),
-            None
-        )
-        product['discount'] = active_discount
-
-    return render_template('all_products.html', products=products, user_type=user_type)
-
-
+    return render_template('all_products.html', 
+                         products=products, 
+                         user_type=user_type)
 
 
 @products_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])

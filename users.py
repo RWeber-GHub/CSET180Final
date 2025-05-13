@@ -304,7 +304,7 @@ def add_to_cart():
 
     if not color or not size:
         flash("Invalid color or size selected.")
-        return redirect(url_for('user.view_cart'))
+        return redirect(url_for('user.cart'))
 
     color_id = color.color_id
     size_id = size.size_id
@@ -320,7 +320,7 @@ def add_to_cart():
 
     if not variant or variant.variant_stock < quantity:
         flash("Selected variant is out of stock or does not exist.")
-        return redirect(url_for('user.view_cart'))
+        return redirect(url_for('user.cart'))
 
     try:
         conn.execute(text("""
