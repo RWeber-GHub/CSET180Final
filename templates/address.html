@@ -33,9 +33,10 @@
                 {% if address.unit_num %}<p>Unit {{ address.unit_num }}</p>{% endif %}
                 {% if address.unit_name %}<p>{{ address.unit_name }}</p>{% endif %}
                 <p>{{ address.city }}, {{ address.state }} {{ address.zipcode }}</p>
-                <p><strong>{{ 'Default' if address.default_address == 1 else 'Not Default' }}</strong></p>
+                <p>{{address.default_address[0]}}</p>
+                <p><strong>{{ 'Default' if address.default_address[0] == 1 else 'Not Default' }}</strong></p>
 
-                {% if address.default_address == 0 %}
+                {% if address.default_address[0] == 0 %}
                 <form method="POST" action="{{ url_for('user.default_address') }}">
                     <input type="hidden" name="address_id" value="{{ address.address_id }}">
                     <input type="submit" class="default-btn" value="Make Default">

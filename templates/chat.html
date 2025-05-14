@@ -130,8 +130,8 @@ header {
 }
 
 .chat-card {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    display: inline-block;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 3fr));
     gap: 20px;
 }
 
@@ -145,6 +145,7 @@ header {
     align-items: center;
     text-align: center;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-width: 200px;
 }
 
 .chat-info form input[type="submit"] {

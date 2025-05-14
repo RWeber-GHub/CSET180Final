@@ -82,6 +82,16 @@
     {% endif %}
     
     {% if user_type == 'B' %}
+    <form method="GET" action="{{ url_for('user.view_reviews') }}" class="search-sort-form">
+        <label for="sort_by"><strong>Sort reviews by:</strong></label>
+        <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+            <option value="">-- Select --</option>
+            <option value="date_desc" {% if request.args.get('sort_by') == 'date_desc' %}selected{% endif %}>Newest First</option>
+            <option value="date_asc" {% if request.args.get('sort_by') == 'date_asc' %}selected{% endif %}>Oldest First</option>
+            <option value="rating_desc" {% if request.args.get('sort_by') == 'rating_desc' %}selected{% endif %}>Highest Rating</option>
+            <option value="rating_asc" {% if request.args.get('sort_by') == 'rating_asc' %}selected{% endif %}>Lowest Rating</option>
+        </select>
+    </form>
         <div class="products-container">
             <div class="product-card">
                 {% for product in products %}
