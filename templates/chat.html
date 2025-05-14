@@ -15,7 +15,7 @@
                 {% for chat in regular_chats %}
                     <div class="chat-card">
                         <div class="chat-info">
-                            <p><strong>{{ chat.user_name or chat.admin_name }}</strong></p>
+                            <p><strong>{{ chat.username or chat.adminname }}</strong></p>
                             <p><strong>{{ chat.email }}</strong></p>
                             <p><strong>{{ chat.chat_type }}</strong></p>
                             <form method="POST" action="{{ url_for('user.view_chat') }}">
@@ -27,12 +27,29 @@
                     </div>
                 {% endfor %}
             {% endif %}
-            <h2>Complaints:</h2>
+            {% if vendor_chats %}
+                <h2>Vendor Chats:</h2>
+                {% for chat in vendor_chats %}
+                    <div class="chat-card">
+                        <div class="chat-info">
+                            <p><strong>{{ chat.vendorname }}</strong></p>
+                            <p><strong>{{ chat.email }}</strong></p>
+                            <p><strong>{{ chat.chat_type }}</strong></p>
+                            <form method="POST" action="{{ url_for('user.view_chat') }}">
+                                <input type="hidden" name="chat_id" value="{{ chat.chat_id }}">
+                                <input type="hidden" name="chat_type" value="{{ chat.chat_type }}">
+                                <input type="submit" value="Chat">
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
             {% if complaint_chats %}
+                <h2>Complaints:</h2>
                 {% for chat in complaint_chats %}
                     <div class="chat-card">
                         <div class="chat-info">
-                            <p><strong>{{ chat.user_name or chat.admin_name }}</strong></p>
+                            <p><strong>{{ chat.username or chat.adminname }}</strong></p>
                             <p><strong>{{ chat.email }}</strong></p>
                             <p><strong>{{ chat.chat_type }}</strong></p>
                             <form method="POST" action="{{ url_for('user.view_chat') }}">
@@ -169,9 +186,8 @@ header {
     justify-content: flex-start;
     margin-bottom: 1rem;
     clear: both;
-    width: 900px;
+    width: 100%;
     margin: auto;
-    padding: 10px;
 }
 
 .my_message {

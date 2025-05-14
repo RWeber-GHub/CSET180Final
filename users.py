@@ -129,217 +129,249 @@ def chat():
     complaint_chats = []
 
     if user_type == 'A':
-        chats = conn.execute(text("""
-            select user_id from user where user_type = 'B'
-        """)).fetchall()
+        chats = conn.execute(text("select user_id from user where user_type = 'B'")).fetchall()
         for chat in chats:
-            print(f'{chat[0]}""""""""""""""""""""""""""""""""""""""""""""""""""""""""')
+            other_user_id = chat[0]
             temp = conn.execute(text("""
-            SELECT chat_id FROM chat
-            WHERE (
-                (user_id = :user_id AND admin_id = :admin_id) OR
-                (user_id = :admin_id AND admin_id = :user_id)
-            )
-                AND chat_type NOT IN ('return', 'refund', 'warranty')
+                select chat_id from chat
+                where ((user_id = :user_id and admin_id = :admin_id)
+                or (user_id = :admin_id and admin_id = :user_id))
+                and chat_type = 'regular'
             """), {
-                'user_id': user_id,
-                'admin_id': chat
+                'user_id': user_id, 'admin_id': other_user_id
             }).fetchone()
 
-            if temp == None:
+            if temp is None:
                 conn.execute(text("""
                     insert into chat (user_id, admin_id)
-                    values (:user_id, :other_user_id)
+                    values (:user_id, :admin_id)
                 """), {
-                    'user_id': user_id,
-                    'other_user_id': chat[0]
+                    'user_id': user_id, 'admin_id': other_user_id
                 })
                 conn.commit()
+
         complaints = conn.execute(text("""
             select co.complaint_id, co.complaint_type, p.user_id as admin_id
             from complaints co
             join product p on co.product_id = p.product_id
-            where co.user_id = :user_id
-            and co.status != 'complete'
+            where co.user_id = :user_id and co.status != 'complete'
+        """), {'user_id': user_id}).fetchall()
+
+        for complaint in complaints:
+            chat_exists = conn.execute(text("""
+                select chat_id from chat
+                where user_id = :user_id and admin_id = :admin_id and chat_type = :chat_type
+            """), {
+                'user_id': user_id,
+                'admin_id': complaint.admin_id,
+                'chat_type': complaint.complaint_type
+            }).fetchone()
+
+            if chat_exists is None:
+                conn.execute(text("""
+                    insert into chat (user_id, admin_id, chat_type)
+                    values (:user_id, :admin_id, :chat_type)
+                """), {
+                    'user_id': user_id,
+                    'admin_id': complaint.admin_id,
+                    'chat_type': complaint.complaint_type
+                })
+                conn.commit()
+
+        regular_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, b.name as adminname, b.email
+            from chat ch
+            join user b on ch.admin_id = b.user_id
+            where ch.user_id = :user_id and ch.chat_type = 'regular'
         """), {
             'user_id': user_id
+        }).fetchall()
+
+        complaint_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, b.name as adminname, b.email
+            from chat ch
+            join user b on ch.admin_id = b.user_id
+            where ch.user_id = :user_id and ch.chat_type in ('return', 'refund', 'warranty')
+        """), {
+            'user_id': user_id
+        }).fetchall()
+
+        return render_template('chat.html', regular_chats=regular_chats, complaint_chats=complaint_chats, bob=1)
+
+    elif user_type == 'B':
+        chats = conn.execute(text("select user_id from user where user_type = 'A'")).fetchall()
+        for chat in chats:
+            other_user_id = chat[0]
+            temp = conn.execute(text("""
+                select chat_id from chat
+                where ((user_id = :user_id and admin_id = :admin_id)
+                or (user_id = :admin_id and admin_id = :user_id))
+                and chat_type = 'regular'
+            """), {
+                'user_id': user_id, 'admin_id': other_user_id
+            }).fetchone()
+
+            if temp is None:
+                conn.execute(text("""
+                    insert into chat (user_id, admin_id)
+                    values (:user_id, :admin_id)
+                """), {
+                    'user_id': other_user_id, 'admin_id': user_id
+                })
+                conn.commit()
+
+        complaints = conn.execute(text("""
+            select complaint_id, user_id, complaint_type
+            from complaints
+            where (user_id = :admin_id or product_id = :admin_id)
+            and status != 'complete'
+        """), {
+            'admin_id': user_id
         }).fetchall()
 
         for complaint in complaints:
             chat_exists = conn.execute(text("""
                 select chat_id from chat
-                where user_id = :uid and admin_id = :aid and chat_type = :ctype
+                where user_id = :user_id and admin_id = :admin_id and chat_type = :chat_type
             """), {
-                'uid': user_id,
-                'aid': complaint.admin_id,
-                'ctype': complaint.complaint_type
+                'user_id': complaint.user_id,
+                'admin_id': user_id,
+                'chat_type': complaint.complaint_type
             }).fetchone()
-
             if chat_exists is None:
                 conn.execute(text("""
                     insert into chat (user_id, admin_id, chat_type)
-                    values (:uid, :aid, :ctype)
+                    values (:user_id, :admin_id, :chat_type)
                 """), {
-                    'uid': user_id,
-                    'aid': complaint.admin_id,
-                    'ctype': complaint.complaint_type
-                })
-                conn.commit()
-        regular_chats = conn.execute(text("""
-            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
-            from chat ch
-            join user b on ch.admin_id = b.user_id
-            where ch.user_id = :user_id
-            and ch.chat_type = 'regular'
-        """), {'user_id': user_id}).fetchall()
-        complaint_chats = conn.execute(text("""
-            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
-            from chat ch
-            join user b on ch.admin_id = b.user_id
-            where ch.user_id = :user_id
-            and ch.chat_type in ('return', 'refund', 'warranty')
-        """), {'user_id': user_id}).fetchall()
-
-    elif user_type == 'B':
-        chats = conn.execute(text("""
-            select user_id from user where user_type = 'A'
-        """)).fetchall()
-        for chat in chats:
-            temp = conn.execute(text("""
-            SELECT chat_id FROM chat
-            WHERE (
-                (user_id = :user_id AND admin_id = :admin_id) OR
-                (user_id = :admin_id AND admin_id = :user_id)
-            )
-                AND chat_type NOT IN ('return', 'refund', 'warranty')
-            """), {
-            'user_id': user_id,
-            'admin_id': chat[0]
-            }).fetchone()
-            
-            if temp == None:
-                conn.execute(text("""
-                    insert into chat (user_id, admin_id)
-                    values (:user_id, :other_user_id)
-                """), {
-                    'user_id': user_id,
-                    'other_user_id': chat[0]
-                })
-        complaints = conn.execute(text("""
-            select complaint_id, user_id, complaint_type
-            from complaints
-            where (user_id = :admin_id or product_id = :admin_id)
-            and status != 'complete'
-        """), {'admin_id': user_id}).fetchall()
-
-        for complaint in complaints:
-            chat_exists = conn.execute(text("""
-                select chat_id from chat
-                where user_id = :uid and admin_id = :aid and chat_type = :ctype
-            """), {
-                'uid': complaint.user_id,
-                'aid': user_id,
-                'ctype': complaint.complaint_type
-            }).fetchone()
-
-            if chat_exists is None:
-                conn.execute(text("""
-                    insert into chat (user_id, admin_id, chat_type)
-                    values (:uid, :aid, :ctype)
-                """), {
-                    'uid': complaint.user_id,
-                    'aid': user_id,
-                    'ctype': complaint.complaint_type
+                    'user_id': complaint.user_id,
+                    'admin_id': user_id,
+                    'chat_type': complaint.complaint_type
                 })
                 conn.commit()
 
         regular_chats = conn.execute(text("""
-            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
+            select ch.chat_id, ch.chat_type, u.name as username, u.email
             from chat ch
-            join user b on ch.admin_id = b.user_id
-            where ch.user_id = :user_id
-            and ch.chat_type = 'regular'
-        """), {'user_id': user_id}).fetchall()
-        print(f'::::::::::::::{regular_chats}:::::::::::')
-        if regular_chats is None:
-                ids = conn.execute(text("""
-                    select user_id as admin_id
-                    from user
-                    where user_type = 'A'
-                """)).fetchall()
-                print(f'::::::::::::::{ids}:::::::::::')
-                for id in ids:
-                    conn.execute(text("""
-                        insert into chat (user_id, admin_id, chat_type)
-                        values (:uid, :aid)
-                    """), {
-                        'uid': user_id,
-                        'aid': id.admin_id
-                    })
-                conn.commit()
-        regular_chats = conn.execute(text("""
-            select ch.chat_id, ch.chat_type, b.name as admin_name, b.email
-            from chat ch
-            join user b on ch.admin_id = b.user_id
-            where ch.user_id = :user_id
-            and ch.chat_type = 'regular'
-        """), {'user_id': user_id}).fetchall()
+            join user u on ch.user_id = u.user_id
+            where ch.admin_id = :admin_id and ch.chat_type = 'regular'
+        """), {
+            'admin_id': user_id
+        }).fetchall()
 
         complaint_chats = conn.execute(text("""
             select ch.chat_id, ch.chat_type, 
-            a.name as user_name, a.email,
+            a.name as username, a.email,
             co.complaint_id, co.title, co.description, co.status, co.complaint_date
             from chat ch
             join user a on ch.user_id = a.user_id
-            join complaints co 
-            on ch.user_id = co.user_id 
+            join complaints co on ch.user_id = co.user_id 
             and ch.chat_type = co.complaint_type
-            where ch.admin_id = :admin_id
+            where ch.admin_id = :admin_id 
             and ch.chat_type in ('return', 'refund', 'warranty')
             and co.status != 'complete'
-        """), {'admin_id': user_id}).fetchall()
+        """), {
+            'admin_id': user_id
+        }).fetchall()
+        for complaint in complaints:
+            chat_exists = conn.execute(text("""
+                select chat_id from chat
+                where user_id = :user_id and admin_id = :admin_id and chat_type = :chat_type
+            """), {
+                'user_id': complaint.user_id,
+                'admin_id': user_id,
+                'chat_type': complaint.complaint_type
+            }).fetchone()
+            if chat_exists is None:
+                conn.execute(text("""
+                    insert into chat (user_id, admin_id, chat_type)
+                    values (:user_id, :admin_id, :chat_type)
+                """), {
+                    'user_id': complaint.user_id,
+                    'admin_id': user_id,
+                    'chat_type': complaint.complaint_type
+                })
+                conn.commit()
+        complaint_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, 
+            a.name as username, a.email,
+            co.complaint_id, co.title, co.description, co.status, co.complaint_date
+            from chat ch
+            join user a on ch.user_id = a.user_id
+            join complaints co on ch.user_id = co.user_id 
+            and ch.chat_type = co.complaint_type
+            where ch.admin_id = :admin_id 
+            and ch.chat_type in ('return', 'refund', 'warranty')
+            and co.status != 'complete'
+        """), {
+            'admin_id': user_id
+        }).fetchall()
+
         return render_template('chat.html', regular_chats=regular_chats, complaint_chats=complaint_chats, bob=1)
+
     elif user_type == 'C':
-        complaints = conn.execute(text("""
-            select complaint_id, user_id, complaint_type
-            from complaints
-            where (user_id = :admin_id or product_id = :admin_id)
-            and status != 'complete'
-        """), {'admin_id': user_id}).fetchall()
-        for complaint in complaints:
-            chat_exists = conn.execute(text("""
+        chats = conn.execute(text("select user_id from user where user_type = 'A'")).fetchall()
+        for chat in chats:
+            other_user_id = chat[0]
+            temp = conn.execute(text("""
                 select chat_id from chat
-                where user_id = :uid and admin_id = :aid and chat_type = :ctype
+                where ((user_id = :user_id and admin_id = :admin_id)
+                or (user_id = :admin_id and admin_id = :user_id))
+                and chat_type = 'regular'
             """), {
-                'uid': complaint.user_id,
-                'aid': user_id,
-                'ctype': complaint.complaint_type
+                'user_id': other_user_id, 'admin_id': user_id
             }).fetchone()
 
-            if chat_exists is None:
+            if temp is None:
                 conn.execute(text("""
                     insert into chat (user_id, admin_id, chat_type)
-                    values (:uid, :aid, :ctype)
+                    values (:user_id, :admin_id, 'regular')
                 """), {
-                    'uid': complaint.user_id,
-                    'aid': user_id,
-                    'ctype': complaint.complaint_type
+                    'user_id': other_user_id, 'admin_id': user_id
                 })
                 conn.commit()
-        complaint_chats = conn.execute(text("""
-            select ch.chat_id, ch.chat_type, 
-            a.name as user_name, a.email,
-            co.complaint_id, co.title, co.description, co.status, co.complaint_date
+
+        chats = conn.execute(text("select user_id from user where user_type = 'B'")).fetchall()
+        for chat in chats:
+            vendor_id = chat[0]
+            temp = conn.execute(text("""
+                select chat_id from chat
+                where ((user_id = :user_id and admin_id = :admin_id)
+                or (user_id = :admin_id and admin_id = :user_id))
+                and chat_type = 'regular'
+            """), {
+                'user_id': user_id, 
+                'admin_id': vendor_id
+            }).fetchone()
+
+            if temp is None:
+                conn.execute(text("""
+                    insert into chat (user_id, admin_id, chat_type)
+                    values (:user_id, :admin_id, 'regular')
+                """), {
+                    'user_id': user_id, 
+                    'admin_id': vendor_id
+                })
+                conn.commit()
+
+        regular_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, u.name as username, u.email
             from chat ch
-            join user a on ch.user_id = a.user_id
-            join complaints co 
-            on ch.user_id = co.user_id 
-            and ch.chat_type = co.complaint_type
-            where ch.admin_id = :admin_id
-            and ch.chat_type in ('return', 'refund', 'warranty')
-            and co.status != 'complete'
-        """), {'admin_id': user_id}).fetchall()
-    return render_template('chat.html', complaint_chats=complaint_chats, bob=1)
+            join user u on ch.user_id = u.user_id
+            where ch.admin_id = :user_id and ch.chat_type = 'regular'
+        """), {
+            'user_id': user_id
+        }).fetchall()
+
+        vendor_chats = conn.execute(text("""
+            select ch.chat_id, ch.chat_type, u.name as vendorname, u.email
+            from chat ch
+            join user u on ch.admin_id = u.user_id
+            where ch.user_id = :user_id and u.user_type = 'B' and ch.chat_type = 'regular'
+        """), {
+            'user_id': user_id
+        }).fetchall()
+        
+        return render_template('chat.html', regular_chats=regular_chats, vendor_chats=vendor_chats, bob=1)
 
 @user_bp.route('/view_chat', methods=['POST', 'GET'])
 def view_chat():
