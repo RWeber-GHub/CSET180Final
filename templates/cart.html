@@ -21,17 +21,24 @@
             <div class="cart-items-container">
                 {% for item in cart_items %}
                     <div class="cart-card">
-                        <img src="{{ item.image }}" alt="{{ item.title }}" class="product-image">
+                    {% if item.image_path %}
+                        <img src="{{ url_for('static', filename=item.image_path.replace('static/', '')) }}" alt="{{ item.title }}">
+                    {% else %}
+                        <div class="no-image">No Image</div>
+                    {% endif %}
+                </div>
                         <div class="product-info">
                             <h3 class="product-title">{{ item.title }}</h3>
+                            <p>Color: <span style="background-color: {{ item.color }}; display: inline-block; width: 15px; height: 15px; border-radius: 50%;"></span></p>
                             <p class="product-text">Price: ${{ '%.2f'|format(item.price) }}</p>
                             <p class="product-text">Quantity: {{ item.quantity }}</p>
                             <p class="product-subtotal"><strong>Subtotal: ${{ '%.2f'|format(item.subtotal) }}</strong></p>
                         </div>
-                        <form method="POST" action="{{ url_for('user.delete_item') }}">
+                        <form method="POST" action="{{ url_for('user.remove_from_cart') }}">
                             <input type="hidden" name="product_id" value="{{ item.product_id }}">
-                            <input type="hidden" name="quantity" value="{{ item.quantity }}">
-                            <button type="submit" class="cart-button">Delete</button>
+                            <input type="hidden" name="color_id" value="{{ item.color_id }}">
+                            <input type="hidden" name="size_id" value="{{ item.size_id }}">
+                            <button type="submit" class="remove-btn">Remove</button>
                         </form>
                     </div>
                 {% endfor %}
@@ -40,11 +47,12 @@
             <div class="cart-summary">
                 <h2>Total: ${{ '%.2f'|format(total) }}</h2>
                 <form method="POST" action="{{ url_for('user.place_order') }}">
-                    <button type="submit" class="cart-button">Place Order</button>
+                    <button type="submit" class="cart-button">Proceed to Checkout</button>
                 </form>
             </div>
         {% else %}
             <p class="empty-cart-message">Your cart is empty!</p>
+            <a href="{{ url_for('products.product_gallery') }}" class="continue-shopping">Continue Shopping</a>
         {% endif %}
     </div>
 </div>

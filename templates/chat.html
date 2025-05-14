@@ -54,6 +54,7 @@
             {% if not messages %}
                     <h1><i>No message history</i></h1>
             {% endif %}
+            <div class="messages-container">
             {% for msg in messages %}
                 <div class="message-wrapper">
                     {% if msg.user_id == session['user_id'] %}
@@ -65,18 +66,21 @@
                     {% endif %}
 
                     {% if msg.image %}
-                        <img src="{{ url_for('static', filename=msg.image.replace('static\\', '').replace('\\', '/')) }}" alt="Image">
+                        <img src="{{ url_for('static', filename=msg.image.replace('static\\', '').replace('\\', '/')) }}" alt="Image" class="image">
                     {% endif %}
                     </div>
                 </div>
             {% endfor %}
-            <h3>Send a Message:</h3>
-            <form method="POST" action="{{ url_for('user.msg') }}" enctype="multipart/form-data">
-                <input type="hidden" name="chat_id" value="{{ chat }}">
-                <textarea name="text" placeholder="Type message..."></textarea><br>
-                <input type="file" name="image"><br>
-                <input type="submit" value="Send">
-            </form>
+        </div>
+            <div class="message-form-container">
+                <h3>Send a Message:</h3>
+                <form method="POST" action="{{ url_for('user.msg') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="chat_id" value="{{ chat }}">
+                    <textarea name="text" placeholder="Type message..." rows="2"></textarea>
+                    <input type="file" name="image"><br>
+                    <input type="submit" value="Send">
+                </form>
+            </div>
         {% endif %}
     </div>
 </body>
@@ -174,7 +178,11 @@ header {
     background-color: #7bb9e3;
     border-radius: 12px;
     padding: 10px;
-    max-width: 60%;
+    max-width: 250px;
+    margin-right: 150px;
+    width: fit-content;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -184,7 +192,7 @@ header {
     color: white;
     border-radius: 12px;
     padding: 10px;
-    max-width: 60%;
+    max-width: 250px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -216,5 +224,39 @@ input[type="submit"]:hover, button:hover {
     background-color: #5a0cab;
 }
 
+.message-form-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    z-index: 1000;
+}
+
+.message-form-container form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.message-form-container textarea {
+    width: 100%;
+    resize: none;
+    margin-bottom: 5px;
+}
+.messages-container {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+    padding-bottom: 200px;
+    box-sizing: border-box;
+}
+.image{
+    width: 80%;
+    height: 65%;
+    margin: 0 auto 10px;
+    border-radius: 8px;
+}
 </style>
 {% endblock %}

@@ -177,9 +177,35 @@ header {
     text-align: center;
 }
 
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+.product-info img{
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin: 0 auto 10px;
+    border-radius: 8px;
+}
+datalist {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  writing-mode: vertical-lr;
+  width: 200px;
+}
+option {
+  padding: 0;
+}
+input[type="range"] {
+  width: 200px;
+  margin: 0;
+}
+datalist {
+    margin: auto;
+}
+textarea {
+  resize: none;
+  width: 300px;
+  height: 100px;
+  margin: 0;
 }
 
 </style>

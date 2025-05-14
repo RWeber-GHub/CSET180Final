@@ -4,7 +4,7 @@
 <div class="container">
     <header>
         <div class="header-links">
-            <a href="{{ url_for('home.home') }}" class="link">Home</a>
+            <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
             <a href="{{ url_for('user.chat') }}" class="link">Chat</a>
             <a href="{{ url_for('user.view_products') }}" class="link">Shop</a>
             <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
@@ -13,51 +13,81 @@
     </header>
 
     {% if user_type == 'A' %}
-        <h2>Submit Complaint</h2>
-        <div class="products-container">
-            {% for product in products %}
+            <div class="products-container">
                 <div class="product-card">
+                {% for product in products %}
                     <div class="product-info">
                         <h3>{{ product.title }}</h3>
-                        <img src="{{ product.image }}" alt="{{ product.title }}" class="product-image">
+                        <img src="{{  product.image  }}" alt="">
                         <p>{{ product.description }}</p>
-                        <p>${{ product.price }}</p>
+                        <p>${{ product.price}}</p>
                     </div>
-
-                    <form method="POST" action="{{ url_for('user.post_complaint') }}">
-                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
-
-                        {% if complaints %}
-                            {% for complaint in complaints %}
-                                <input type="text" name="title" placeholder="Complaint Title" value="{{ complaint.title }}">
-                                <textarea name="description">{{ complaint.description }}</textarea>
-                            {% endfor %}
-                        {% else %}
-                            <input type="text" name="title" placeholder="Complaint Title">
-                            <textarea name="description" placeholder="Enter your message here"></textarea>
+                <form method="POST" action="{{ url_for('user.post_complaint') }}">
+                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                    {% if complaints %}
+                        {% for complaint in complaints%}
+                            <input type="text" name="title" placeholder="Complaint Title: " value="{{ complaint.title }}">
+                            <textarea name="description" placeholder="Enter your message here">{{ complaint.description }}</textarea>
+                        {% endfor %}
+                    {% endif %}
+                    {% if not complaints %}
+                        <input type="text" name="title" placeholder="Complaint Title: ">
+                        <textarea name="description" placeholder="Enter your message here"></textarea>
+                    {% endif %}
+                    {% if complaints %}
+                        {% for complaint in complaints%}
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'return' %}
+                                    <input type="radio" name="complaint" value="return" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="return">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Return
+                            </label>
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'refund' %}
+                                    <input type="radio" name="complaint" value="refund" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="refund">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Refund
+                            </label>
+                            <label class="radio">
+                                {% if complaint.complaint_type == 'warranty' %}
+                                    <input type="radio" name="complaint" value="warranty" checked>
+                                {% else %}
+                                    <input type="radio" name="complaint" value="warranty">
+                                {% endif %}
+                                <span class="mark"></span>
+                                Warranty
+                            </label>
+                        {% endfor %}
                         {% endif %}
-
-                        <div class="complaint-types">
+                        {% if not complaints %}
                             <label class="radio">
                                 <input type="radio" name="complaint" value="return">
-                                <span class="mark"></span>Return
+                                <span class="mark"></span>
+                                Return
                             </label>
                             <label class="radio">
                                 <input type="radio" name="complaint" value="refund">
-                                <span class="mark"></span>Refund
+                                <span class="mark"></span>
+                                Refund
                             </label>
                             <label class="radio">
                                 <input type="radio" name="complaint" value="warranty">
-                                <span class="mark"></span>Warranty
+                                <span class="mark"></span>
+                                Warrenty
                             </label>
-                        </div>
-
-                        <input type="submit" value="Send">
-                    </form>
-                </div>
-            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    <input type="submit" value="Send">
+                </form>
+            </div>
         </div>
-    {% endif %}
+        {% endif %}
 
     {% if user_type == 'B' %}
         <h2>Customer Complaints</h2>
@@ -70,6 +100,7 @@
                         <p><strong>Product:</strong> {{ complaint.product_title }}</p>
                         <p><strong>Description:</strong> {{ complaint.description }}</p>
                         <p>Status: <span class="status-{{ complaint.status }}">{{ complaint.status }}</span></p>
+                        <p>{{ complaint.complaint_id }}</p>
                     </div>
 
                     <form method="POST" action="{{ url_for('user.update_complaint_status') }}">

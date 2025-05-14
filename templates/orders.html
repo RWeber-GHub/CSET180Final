@@ -32,7 +32,7 @@
                     <img src="{{ order_item.image }}" alt="{{ order_item.title }}" class="product-image">
                     <div class="product-info">
                         <h3 class="product-title">{{ order_item.title }}</h3>
-                        {% if temp == 0 %}
+                        {% if order_item.temp == 0 %}
                         <form method="POST" action="{{ url_for('user.review') }}">
                             <input type="hidden" name="product_id" value="{{ order_item.product_id }}">
                             <input type="submit" value="Review">
@@ -75,8 +75,9 @@
                                 {% endif %}
                                 </div>
                             </div>
-                        </div>
+                        
                     {% endfor %}
+                    </div>
                 </div>
             {% endfor %}
         {% endif %}

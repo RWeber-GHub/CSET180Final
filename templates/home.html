@@ -50,19 +50,14 @@
                         <h3>{{ product.title }}</h3>
                         <p>{{ product.description }}</p>
                         <p><strong>Price:</strong> ${{ '%.2f'|format(product.price) }}</p>
-                        {% for id in id_count %}
-                            {% for product in  products %}
-                                {% if id.product_id == product.product_id%}
-                                    {% if id.id_count > 1 %}
-                                        {% for i in range(int(id.id_count))%}
-                                        <img src="{{ url_for('static', filename=product.image[i].replace('static\\', '').replace('\\', '/')) }}">
-                                        {% endfor %}
-                                    {% endif %}
-                                    {% else %}
-                                        <img src="{{ url_for('static', filename=product.image[i].replace('static\\', '').replace('\\', '/')) }}">
-                                {% endif %}
+
+                        {% if product.images %}
+                            {% for image in product.images %}
+                                <img src="{{ url_for('static', filename=image.replace('static/', '').replace('\\', '/')) }}" alt="Product Image">
                             {% endfor %}
-                        {% endfor %}
+                        {% else %}
+                            <p>No images available.</p>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

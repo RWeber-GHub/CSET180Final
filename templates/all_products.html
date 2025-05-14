@@ -9,13 +9,14 @@
             <a href="{{ url_for('user.user') }}" class="link">User Dashboard</a>
             <a href="{{ url_for('user.cart') }}" class="link">Cart</a>
             <a href="{{ url_for('user.view_orders') }}" class="link">Orders</a>
+            {% if user_type in ['B', 'C'] %}
             <a href="{{ url_for('products.create') }}" class="link">Create Product</a>
+            {% endif %}
         </div>
     </header>
 
     <h1>Marketplace</h1>
 
-    <!-- Search and Filters -->
     <form method="GET" action="{{ url_for('user.view_products') }}" class="search-sort-form">
         <input type="text" name="query" placeholder="Search products..." value="{{ request.args.get('query', '') }}">
         
@@ -34,7 +35,6 @@
         <input type="submit" value="Apply" class="submit-btn">
     </form>
 
-    <!-- Product List -->
     <div class="product-gallery">
         {% for product in products %}
         <div class="product-card" data-product-id="{{ product.product_id }}">
@@ -70,7 +70,6 @@
 
             <p><strong>Warranty:</strong> {{ product.warranty }}</p>
 
-            <!-- Add to Cart Form -->
             <form method="POST" action="{{ url_for('user.add_to_cart') }}" onsubmit="return validateVariant({{ product.product_id }})">
                 <input type="hidden" name="product_id" value="{{ product.product_id }}">
                 <input type="hidden" name="color" class="color-input">
@@ -102,19 +101,33 @@
                 <input type="submit" value="Add to Cart" class="submit-btn">
             </form>
 
-            <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
-                <button>Edit Product</button>
-            </a>
+             <div class="product-actions">
+        {% if product.is_owner or user_type == 'C' %}
+        <a href="{{ url_for('products.edit_product', product_id=product.product_id) }}">
+            <button>Edit Product</button>
+        </a>
 
-            <button type="button" onclick="toggleDiscountForm({{ product.product_id }})">Add Discount</button>
+        <button type="button" onclick="toggleDiscountForm({{ product.product_id }})" class="discount-toggle-btn">
+            Add Discount
+        </button>
 
-            <form method="POST" action="{{ url_for('products.add_discount', product_id=product.product_id) }}" 
-                  class="discount-form" id="discount-form-{{ product.product_id }}" style="display: none;">
-                <label>Amount (%): <input type="number" name="discount_amount" min="1" max="100" required></label><br>
-                <label>Start Date: <input type="date" name="discount_start" required></label><br>
-                <label>End Date: <input type="date" name="discount_end" required></label><br>
-                <input type="submit" value="Apply Discount" class="submit-btn">
-            </form>
+        <form action="{{ url_for('products.delete_product', product_id=product.product_id) }}" method="POST" class="delete-form">
+            <button type="submit" class="delete-btn" onclick="return confirmDelete(event)">
+                Delete
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if product.is_owner or user_type == 'C' %}
+    <form method="POST" action="{{ url_for('products.add_discount', product_id=product.product_id) }}" 
+          class="discount-form" id="discount-form-{{ product.product_id }}" style="display: none;">
+        <label>Amount (%): <input type="number" name="discount_amount" min="1" max="100" required class="discount-input"></label>
+        <label>Start Date: <input type="date" name="discount_start" required class="discount-input"></label>
+        <label>End Date: <input type="date" name="discount_end" required class="discount-input"></label>
+        <input type="submit" value="Apply Discount" class="submit-btn">
+    </form>
+    {% endif %}
 
             <script>
                 window["variants_{{ product.product_id }}"] = JSON.parse('{{ product.variants_json | safe }}');
@@ -255,68 +268,145 @@
     }
 
     .size-select option:disabled {
-    color: #ccc;
-    background-color: #f8f8f8;
-}
+        color: #ccc;
+        background-color: #f8f8f8;
+    }
 
-.size-select option {
-    color: #000;
-}
+    .size-select option {
+        color: #000;
+    }
 
-.unavailable-option {
-    color: #999;
-    text-decoration: line-through;
-}
-.price-section {
-    position: relative;
-    margin: 1rem 0;
-}
+    .unavailable-option {
+        color: #999;
+        text-decoration: line-through;
+    }
 
-.discount-badge {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background: #e53935;
-    color: white;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.9rem;
-    z-index: 1;
-}
+    .price-section {
+        position: relative;
+        margin: 1rem 0;
+    }
 
-.price-display {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-}
+    .discount-badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #e53935;
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        z-index: 1;
+    }
 
-.original-price {
-    text-decoration: line-through;
-    color: #999;
-    font-size: 0.9rem;
-}
+    .price-display {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
 
-.discounted-price {
-    color: #e53935;
-    font-weight: bold;
-    font-size: 1.2rem;
-}
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 0.9rem;
+    }
 
-.current-price {
-    font-weight: bold;
-    font-size: 1.2rem;
-}
+    .discounted-price {
+        color: #e53935;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .current-price {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .discount-toggle-btn {
+        background-color: #6e31a6;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .discount-toggle-btn:hover {
+        background-color: #51048c;
+    }
+
+    .discount-form {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+
+    .discount-form label {
+        display: block;
+        margin-bottom: 10px;
+        color: black;
+    }
+
+    .discount-input {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        background-color: white;
+        color: black;
+        margin-left: 5px;
+    }
+
+    .submit-btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 5px;
+    }
+
+    .submit-btn:hover {
+        background-color: #45a049;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .delete-form {
+        margin: 0;
+        display: inline;
+    }
+
+    .delete-btn {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .delete-btn:hover {
+        background-color: #d32f2f;
+    }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize all product cards with their variants
         document.querySelectorAll('.product-card').forEach(card => {
             const productId = card.dataset.productId;
             let variants = [];
@@ -328,11 +418,9 @@
                 console.error(`Error loading variants for product ${productId}:`, e);
                 variants = [];
             }
-            
-            // Get all unique colors for this product
+
             const colors = [...new Set(variants.map(v => v.color))];
-            
-            // Select first color by default if available
+
             if (colors.length > 0) {
                 const firstColor = colors[0];
                 const colorCircle = card.querySelector(`.color-circle[data-color="${firstColor}"]`);
@@ -344,24 +432,20 @@
             }
         });
 
-        // Color selection handler
         document.querySelectorAll('.color-circle').forEach(circle => {
             circle.addEventListener('click', function() {
                 const productId = this.dataset.productId;
                 const color = this.dataset.color;
-                
-                // Update selected color
+
                 document.querySelectorAll(`.color-circle[data-product-id="${productId}"]`)
                     .forEach(c => c.classList.remove('selected'));
                 this.classList.add('selected');
                 document.querySelector(`.product-card[data-product-id="${productId}"] .color-input`).value = color;
-                
-                // Update size options for selected color
+  
                 updateSizeOptions(productId, color);
             });
         });
 
-        // Size selection handler
         document.querySelectorAll('.size-select').forEach(select => {
             select.addEventListener('change', function() {
                 const productId = this.dataset.productId;
@@ -386,17 +470,13 @@
         const sizeSelect = document.querySelector(`#size-select-${productId}`);
         if (!sizeSelect) return;
         
-        // Filter variants for selected color
         const colorVariants = variants.filter(v => v.color === color);
         
-        // Get current selection before clearing
         const currentSize = sizeSelect.value;
         let currentSizeStillAvailable = false;
         
-        // Clear existing options
         sizeSelect.innerHTML = '';
         
-        // Get unique sizes for this color
         const sizeMap = {};
         colorVariants.forEach(variant => {
             if (!sizeMap[variant.size]) {
@@ -407,7 +487,6 @@
             }
         });
         
-        // Add size options
         Object.entries(sizeMap).forEach(([size, data]) => {
             const option = document.createElement('option');
             option.value = size;
@@ -424,7 +503,6 @@
             sizeSelect.appendChild(option);
         });
         
-        // Restore selection if still available, otherwise select first available
         if (currentSizeStillAvailable) {
             sizeSelect.value = currentSize;
         } else {
@@ -434,7 +512,6 @@
             }
         }
         
-        // Update price display
         updatePriceDisplay(productId, color, sizeSelect.value);
     }
 
@@ -465,6 +542,77 @@
         }
     }
 
-    // [Keep the validateVariant and toggleDiscountForm functions the same]
+    function toggleDiscountForm(productId) {
+        const form = document.getElementById(`discount-form-${productId}`);
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        
+        if (form.style.display === 'block') {
+            const today = new Date().toISOString().split('T')[0];
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekFormatted = nextWeek.toISOString().split('T')[0];
+            
+            form.querySelector('input[name="discount_start"]').value = today;
+            form.querySelector('input[name="discount_end"]').value = nextWeekFormatted;
+            form.querySelector('input[name="discount_amount"]').value = '10';
+        }
+    }
+
+    document.querySelectorAll('.discount-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.value = 'Applying...';
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(text || 'Server returned non-JSON response');
+                }
+
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'Failed to apply discount');
+                }
+
+                alert('Discount applied successfully!');
+                toggleDiscountForm(this.id.split('-')[2]);
+            } catch (error) {
+                console.error('Discount error:', error);
+                alert(error.message.includes('<!doctype html>') 
+                    ? 'Server error occurred. Please try again.' 
+                    : error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.value = 'Apply Discount';
+            }
+        });
+    });
+
+    function confirmDelete(event) {
+        if (!confirm('Are you sure you want to delete this product?')) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.stopPropagation();
+        });
+    });
 </script>
 {% endblock %}

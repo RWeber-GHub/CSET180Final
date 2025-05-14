@@ -9,50 +9,62 @@ show_login_form = False
 show_signup_form = False
 @home_bp.route('/')
 def home():
-    ids = conn.execute(text("""
-        select p.product_id
+    products_raw = conn.execute(text("""
+        select p.product_id, p.title, p.price, p.description
         from product p
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        order by product_id desc 
+        order by p.product_id desc
         limit 12
     """)).fetchall()
-    ids = list(set(ids))
-    unique_ids = conn.execute(text("""
-        select p.product_id
-        from product p
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        order by product_id desc 
-        limit 12
-    """)).fetchall()
-    id_count = []
-    for id in range(len(unique_ids)):
-        temp = ids.count(unique_ids[id])
-        id_count.append({
-            'product_id': unique_ids[id],
-            'count': temp
-            })
-    products = conn.execute(text("""
-        select p.product_id, p.title, p.price, i.image
-        from product p
-        left join product_images pi on p.product_id = pi.product_id
-        left join images i on pi.image_id = i.image_id
-        order by product_id desc 
-        limit 12
-    """)).fetchall()
+    product_id_map = {}
+    for product in products_raw:
+        product_id_map[product.product_id] = {
+            'title': product.title,
+            'price': product.price,
+            'description': product.description,
+            'images': []  
+        }
+    product_ids = []
+    for product_id in product_id_map:
+        product_ids.append(product_id)
 
+    if product_ids:
+        placeholders_list = []
+        for index in range(len(product_ids)):
+            key = f"{index}"
+            placeholders_list.append(f":{key}")
+        placeholders_string = ', '.join(placeholders_list)
+        query = text(f"""
+            select pi.product_id, i.image
+            from product_images pi
+            join images i on pi.image_id = i.image_id
+            where pi.product_id IN ({placeholders_string})
+        """)
+        params = {}
+        for index, pid in enumerate(product_ids):
+            key = f"{index}"
+            params[key] = pid
+        images_raw = conn.execute(query, params).fetchall()
+        for img in images_raw:
+            product_id = img.product_id
+            image_url = img.image
+            if product_id in product_id_map:
+                product_id_map[product_id]['images'].append(image_url)
+    products = []
+    for pid, data in product_id_map.items():
+        product = {
+            'product_id': pid,
+            'title': data['title'],
+            'price': data['price'],
+            'description': data['description'],
+            'images': data['images']
+        }
+        products.append(product)
+    return render_template('home.html', show_login_form=False, show_signup_form=False, products=products)
 
-
-    try:
-        user_id = session['user_id']
-    except:
-        session.pop('user_type', None)
-        return render_template('home.html', products=products, id_count=id_count)
-    return render_template('home.html', show_login_form=True, products=products, id_count=id_count)
 
 @home_bp.route('/login', methods=['GET', 'POST'])
 def login():
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']

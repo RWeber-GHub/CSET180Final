@@ -200,6 +200,18 @@
       color: white;
   }
   
+  .variant-group {
+  background: rgba(255,255,255,0.1);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.variant-group input, 
+.variant-group select {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
   </style>
 
 
@@ -207,21 +219,21 @@
     let variantIndex = 0;
   
     function addVariant() {
-      const container = document.getElementById("variants-container");
+  const container = document.getElementById("variants-container");
   
-      const variantHTML = `
-        <div class="variant-group" style="margin-bottom: 10px; border: 1px solid #ccc; padding: 10px;">
-          <input type="color" name="variants[${variantIndex}][color]" required>
-          <input type="text" name="variants[${variantIndex}][size]" placeholder="Size (e.g. M)" required>
-          <input type="number" name="variants[${variantIndex}][stock]" placeholder="Stock Qty" required>
-          <input type="number" name="variants[${variantIndex}][price]" placeholder="Price" step="0.01" required>
-          <button type="button" onclick="this.parentElement.remove()">Remove</button>
-        </div>
-      `;
+  const variantHTML = `
+    <div class="variant-group" style="margin-bottom: 10px; border: 1px solid #ccc; padding: 10px;">
+      <input type="color" name="variants[${variantIndex}][color]" value="#ff0000" required>
+      <input type="text" name="variants[${variantIndex}][size]" placeholder="Size (e.g. S, M, L, XL)" required>
+      <input type="number" name="variants[${variantIndex}][stock]" placeholder="Stock Qty" min="1" required>
+      <input type="number" name="variants[${variantIndex}][price]" placeholder="Price" step="0.01" min="0" required>
+      <button type="button" onclick="this.parentElement.remove()">Remove</button>
+    </div>
+  `;
   
-      container.insertAdjacentHTML("beforeend", variantHTML);
-      variantIndex++;
-    }
+  container.insertAdjacentHTML("beforeend", variantHTML);
+  variantIndex++;
+}
   </script>
   <!-- Had to watch tutorial for this JavaScript part, so if it looks more professional thats why -->
 {% endblock %}
